@@ -121,4 +121,22 @@ REST_FRAMEWORK = {
     'DEFAILT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
     ),
+    # 'DEFAULT_PERMISSION_CLASSES': (
+    #     'rest_framework.permissions.AllowAny',
+    # ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 6  # Для проверки, потом 6
+}
+
+DJOSER = {  # дописать все пермишены, подумать, как выводить сообщения в ответе об ошибке как в доке
+    'LOGIN_FIELD': 'email',
+    # 'PASSWORD_RESET_CONFIRM_URL': '',
+    'SERIALIZERS': {
+        'user': 'api.v1.users.serializers.CustomUserSerializer',
+        'current_user': 'api.v1.users.serializers.CustomUserSerializer',
+    },
+    'HIDE_USERS': False,
+    'PERMISSIONS': {
+        'user_list': ('rest_framework.permissions.AllowAny',),
+    }
 }
