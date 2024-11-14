@@ -4,7 +4,6 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from apps.users.models import Subscription
-# from .serializer_fields import Base64ImageField
 
 
 User = get_user_model()
@@ -32,14 +31,14 @@ class CustomUserSerializer(UserSerializer):
         user = self.context['request'].user
         return (user.is_authenticated and
                 Subscription.objects.filter(user=user, author=obj).exists())
-    
 
-# class AvatarSerialiser(serializers.ModelSerializer):
-#     """Сериализатор для добавления или удаления аватара."""
 
-#     avatar = Base64ImageField()  # Есть pip install django-extra-fields с Base64ImageField
+class AvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор аватарки"""
 
-#     class Meta():
-#         model = User
-#         fields = ['avatar',]
+    avatar = Base64ImageField(allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ('avatar',)
 
