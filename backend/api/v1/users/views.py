@@ -15,10 +15,10 @@ class CustomUserViewSet(UserViewSet):
 
     pagination_class = PageNumberPaginationWithLimit
 
-    def get_permissions(self):
-        if self.action == 'me':
-            self.permission_classes = [IsAuthenticated, CurrentUserOrAdmin]
-        return super().get_permissions()
+    # def get_permissions(self):
+    #     if self.action == 'me':
+    #         self.permission_classes = [IsAuthenticated, CurrentUserOrAdmin]
+    #     return super().get_permissions()
     
 
     # @action(

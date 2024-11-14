@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
 from djoser.serializers import UserSerializer
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
 
 from apps.users.models import Subscription
-from .serializer_fields import Base64ImageField
+# from .serializer_fields import Base64ImageField
 
 
 User = get_user_model()
@@ -13,7 +14,7 @@ class CustomUserSerializer(UserSerializer):
     """Сериализатор на отображение пользователя."""  # Может назначение изменится
 
     is_subscribed = serializers.SerializerMethodField()
-    # avatar = Base64ImageField()
+    avatar = Base64ImageField(allow_null=True)
 
     class Meta():
         model = User
