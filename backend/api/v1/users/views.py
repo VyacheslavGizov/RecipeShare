@@ -1,14 +1,9 @@
 from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet
-from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.response import Response
+from rest_framework import decorators, response, status
 
+from .serializers import AvatarSerializer
 from api.pagination import PageNumberPaginationWithLimit
-
-from .serializers import CustomUserSerializer, AvatarSerializer
 
 
 class CustomUserViewSet(UserViewSet):
@@ -16,32 +11,45 @@ class CustomUserViewSet(UserViewSet):
     pagination_class = PageNumberPaginationWithLimit
 
     def get_permissions(self):
+        # явно задаю разрешение на этот эндпоинт, потому-что его нет в настройках
         if self.action == 'me':
-            self.permission_classes = [CurrentUserOrAdmin,]
+            self.permission_classes = (CurrentUserOrAdmin,)
         return super().get_permissions()
+
+    def get_serializer_class(self):  # чтобы отработал update в avatar
+        if self.action == 'avatar':
+            return AvatarSerializer
+        return super().get_serializer_class()
     
-    # оставить этот сериализатор, но постараться в нем переписать update и destroy, разобраться, как работает  
-    @action(
+    def get_object(self):  # чтобы отработал update в avatar
+        if self.action == 'avatar':
+            return self.request.user
+        return super().get_object()
+
+    @decorators.action(
         methods=['put', 'delete'],
         detail=False,  # если тру, то в маршруте должен быть pk
-        permission_classes=[CurrentUserOrAdmin,],
+        permission_classes=(CurrentUserOrAdmin,),
         url_path='me/avatar',  # необходимый урл
+        url_name='me-avatar',  # будет использовано для имени адреса как basename-urlname (user-me-avatar)
     )
-    def avatar(self, request): # пока так
-        user_object = self.get_instance()   # что делает get_instance 
+    def avatar(self, request):
         if request.method == 'PUT':
-            serializer = AvatarSerializer(instance=user_object, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
-        data = {'avatar': ''}
-        serializer = AvatarSerializer(instance=user_object, data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-        
-    
-        
+            return self.update(request)
+        instance = request.user
+        instance.avatar = None
+        instance.save()
+        return response.Response(status=status.HTTP_204_NO_CONTENT)
+
+    # def avatar(self, request):  # для отдельного сериализатора
+    #     instance = request.user
+    #     if request.method == 'PUT':
+    #         serializer = AvatarSerializer(instance=instance, data=request.data)
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #             return response.Response(serializer.data, status=status.HTTP_200_OK)
+    #         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #     if request.method == 'DELETE':
+    #         instance.avatar = None
+    #         instance.save()
+    #         return response.Response(status=status.HTTP_204_NO_CONTENT)

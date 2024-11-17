@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
     'rest_framework.authtoken',
     'djoser',
     'apps.users.apps.UsersConfig',
@@ -140,5 +141,6 @@ DJOSER = {  # дописать все пермишены
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny',],
         'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly',],
+        'token_destroy': ['djoser.permissions.CurrentUserOrAdmin'],
     },
 }
