@@ -2,7 +2,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions
 
 from .filters import IngredientFilter
-from .serializers import TagSerializer, IngredientSerialiser
+from .serializers import (
+    IngredientSerialiser,
+    RecipeListSerialiser,
+    TagSerializer,
+)
 from apps.recipes import models
 
 
@@ -25,3 +29,10 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = IngredientFilter
     permission_classes = (permissions.AllowAny,)
 
+
+class RecipesViewSet(viewsets.ModelViewSet):
+    """Вьюсет для модели Рецептов обеспечивает операции CRUD."""
+    
+    queryset = models.Recipe.objects.all()
+    serializer_class = RecipeListSerialiser
+    permission_classes = (permissions.AllowAny,)

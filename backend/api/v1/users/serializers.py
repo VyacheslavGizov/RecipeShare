@@ -29,7 +29,10 @@ class CustomUserSerializer(UserSerializer):
         read_only_fields = ('id',)
 
     def get_is_subscribed(self, instance):
-        user = self.context['request'].user
+        request = self.context.get('request', None)  # на случай, если get_serializer_context() не передаст запрос
+        if request is None:
+            return False
+        user = request.user
         return (
             user.is_authenticated and
             Subscription.objects.filter(user=user, author=instance).exists()
@@ -46,3 +49,9 @@ class AvatarSerializer(serializers.ModelSerializer):
         fields = ('avatar',)
 
 
+class SubscriptionSerialiser(serializers.ModelSerializer):
+
+    class Meta:
+        model = Subscription
+        fields = '__all__'
+        depth = 1

@@ -48,7 +48,7 @@ class Tag(models.Model):
     #     default=LILAC,
     #     help_text='Выберите предустановленный цвет тега'
     # )
-    color = models.CharField(
+    color = models.CharField(  # оставить просто текстовым полем, и установить один дефолтный цвет
         'Цвет тега в hex-формате',
         max_length=7,
         help_text='Введите цвет тега (например: #ADD8E6)',
