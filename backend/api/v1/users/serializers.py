@@ -29,10 +29,7 @@ class CustomUserSerializer(UserSerializer):
         read_only_fields = ('id',)
 
     def get_is_subscribed(self, instance):
-        request = self.context.get('request', None)  # на случай, если get_serializer_context() не передаст запрос
-        if request is None:
-            return False
-        user = request.user
+        user = self.context['request'].user
         return (
             user.is_authenticated and
             Subscription.objects.filter(user=user, author=instance).exists()
