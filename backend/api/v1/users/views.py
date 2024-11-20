@@ -14,6 +14,7 @@ class CustomUserViewSet(UserViewSet):
         # явно задаю разрешение на этот эндпоинт, потому-что его нет в настройках
         if self.action == 'me':
             self.permission_classes = (CurrentUserOrAdmin,)
+            # return (CurrentUserOrAdmin,)
         return super().get_permissions()
 
     def get_serializer_class(self):  # чтобы отработал update в avatar
