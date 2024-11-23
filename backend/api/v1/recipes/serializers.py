@@ -87,7 +87,7 @@ class ShortIngredientForRecipeSerialiser(serializers.ModelSerializer):
     """Сериализатор для добавления Ингредиента в Рецепт."""
 
     id = serializers.PrimaryKeyRelatedField(
-        queryset=models.Ingredient.objects.all()  # Потому что работаю на запись
+        queryset=models.Ingredient.objects.all(),  # Потому что работаю на запись
     )
     # amount cам должен создаться
 
@@ -99,13 +99,15 @@ class ShortIngredientForRecipeSerialiser(serializers.ModelSerializer):
 class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
     """Сериализатор для создания/изменения рецепта."""
 
-    ingredients = ShortIngredientForRecipeSerialiser(many=True)
+    ingredients = ShortIngredientForRecipeSerialiser(many=True, required=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=models.Tag.objects.all(),
         many=True
     )
     image = Base64ImageField()
-    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    author = serializers.PrimaryKeyRelatedField(
+        read_only=True, default=serializers.CurrentUserDefault(),
+    )
 
     class Meta:
         model = models.Recipe
@@ -119,9 +121,29 @@ class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
             'author',
         )
     
+    # возможно написать отдельный валидатор универсальный и его использовать прям в полях
+    def validate_ingredients(self, ingredients):
+        if not ingredients or not all(ingredients):
+            raise serializers.ValidationError('Добавьте ингридиенты.')
+        if len(ingredients) != len(set(
+            [ingredient['id'] for ingredient in ingredients]
+        )):
+            raise serializers.ValidationError('Все ингредиенты должны быть уникальными.')
+        return ingredients
+        
+    def validate_tags(self, tags):
+        if not tags or not all(tags):
+            raise serializers.ValidationError('Добавьте один или несколько тегов.')
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError('Все теги должны быть уникальными.')
+        return tags
+        
+    def validate_image(self, image):
+        if image is None:
+            raise serializers.ValidationError('Добавьте фото рецепта.')
+        return image
+    
     def to_representation(self, instance):
-        # нужно чтобы при вызове во вьюсет serializer.data было правильное отображение
-        # контекст передаю, потому что поля к методам привязанные от него рабтают
         return ReadRecipeSerialiser(instance, context=self.context).data
 
     def create(self, validated_data):
@@ -156,3 +178,34 @@ class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
         )
         super().update(instance, validated_data)
         return instance  # вроде внутри update
+    
+
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор короткого представления Рецепта."""
+
+    class Meta:
+        model = models.Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class AddRecipeInShopingCartSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления Рецепта в Список покупок."""
+    
+    class Meta:
+        model = models.ShopingCart
+        fields = ('user', 'recipe')
+        read_only_fields = ('user',)
+        # extra_kwargs = {'user': {'read_only': True}}
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if models.ShopingCart.objects.filter(
+            recipe=attrs['recipe'], user=user
+        ).exists():
+            raise serializers.ValidationError('Рецепт уже добавлен в Список покупок.')
+        attrs['user'] = user
+        return attrs
+
+    def to_representation(self, instance):
+        return ShortRecipeSerializer(instance.recipe).data
+
