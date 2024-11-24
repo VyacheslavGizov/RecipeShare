@@ -2,8 +2,9 @@ from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet
 from rest_framework import decorators, response, status, permissions
 
-from .serializers import AvatarSerializer, SubscriptionSerialiser
+from .serializers import AvatarSerializer, SubscribeSerializer, UserInSubscriptionsSerializer
 from api.pagination import PageNumberPaginationWithLimit
+from apps.users.models import CustomUser, Subscription
 
 
 class CustomUserViewSet(UserViewSet):
@@ -20,12 +21,21 @@ class CustomUserViewSet(UserViewSet):
     def get_serializer_class(self):  # чтобы отработал update в avatar
         if self.action == 'avatar':
             return AvatarSerializer
+        if self.action == 'subscribe':
+            return SubscribeSerializer
+        if self.action == 'subscriptions':
+            return SubscribeSerializer
         return super().get_serializer_class()
 
     def get_object(self):  # чтобы отработал update в avatar
         if self.action == 'avatar':
             return self.request.user
         return super().get_object()
+    
+    def get_queryset(self):
+        if self.action == 'subscriptions':
+            return self.request.user.subscriptions.all()
+        return super().get_queryset()
 
     @decorators.action(
         methods=['put', 'delete'],
@@ -41,16 +51,40 @@ class CustomUserViewSet(UserViewSet):
         instance.avatar = None
         instance.save()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @decorators.action(
+        methods=['post', 'delete'],
+        detail=True,
+        permission_classes=[permissions.IsAuthenticated],
+        url_name='subscribe',
+    )
+    def subscribe(self, request, id=None):
+        # аналогично в recipes
+        if not CustomUser.objects.filter(id=id).exists():
+            return response.Response(status=status.HTTP_404_NOT_FOUND)
+        if request.method == 'POST':
+            serializer = self.get_serializer(data={'author': id})
+            if serializer.is_valid():
+                serializer.save(user=request.user)
+                return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+            return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        subscriptions = request.user.subscriptions.filter(author=id)
+        if not subscriptions.exists():
+            return response.Response(status=status.HTTP_400_BAD_REQUEST)
+        subscriptions.delete()
+        return response.Response(status=status.HTTP_204_NO_CONTENT)
 
-    # @decorators.action(
-    #         methods=['get'],
-    #         detail=False,
-    #         permission_classes=(permissions.IsAuthenticated,),
-    #         # возможно по-умолчанию такие создаст
-    #         url_path='subscriptions',
-    #         url_name='subscriptions'
-    # )
-    # def subscriptions(self, request):
-    #     instance = self.request.user.subscriptions.all()
-    #     serialiser = SubscriptionSerialiser(instance=instance, many=True)
-    #     return response.Response(serialiser.data)
+    @decorators.action(
+        detail=False,
+        permission_classes=[permissions.IsAuthenticated],
+        url_name='subscribtions',
+    )
+    def subscriptions(self, request):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return response.Response(serializer.data)

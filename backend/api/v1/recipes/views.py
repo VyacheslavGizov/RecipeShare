@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, reverse, response, decorators, status
+from django.db.models import Sum
+from django.http import HttpResponse
 
 from .filters import IngredientFilter, RecipesFilter
 from .serializers import (
@@ -9,6 +11,7 @@ from .serializers import (
     CreateUpdateRecipeSerialiser,
     TagSerializer,
     AddRecipeInShopingCartSerializer,
+    AddRecipeInFavoriteSerializer,
 )
 from apps.recipes import models
 # from api.pagination import PageNumberPaginationWithLimit
@@ -54,6 +57,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return ReadRecipeSerialiser
         if self.action == 'shopping_cart':
             return AddRecipeInShopingCartSerializer
+        if self.action == 'favorite':
+            return AddRecipeInFavoriteSerializer
         return CreateUpdateRecipeSerialiser
 
     def get_permissions(self):
@@ -90,28 +95,69 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='shopping_cart'
     )
     def shopping_cart(self, request, pk=None):
+        if not models.Recipe.objects.filter(pk=pk).exists():
+            return response.Response(status=status.HTTP_404_NOT_FOUND)
         if request.method == 'POST':
-            serializer = self.get_serializer(data={'recipe': pk})
-            if serializer.is_valid():
-                serializer.save(user=request.user)
-                return response.Response(serializer.data, status=status.HTTP_201_CREATED)
-            return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        # использовать обратный менеджер и в других местах
-        recipe = get_object_or_404(models.Recipe, pk=pk)
-        user_cart_record = recipe.users_add_in_shoping_cart.filter(user=request.user.id)
-        if not user_cart_record.exists():
+            return self.add_recipe(request, pk)
+        return self.delete_recipe(request.user.shopping_cart_records, pk)
+    
+    @decorators.action(
+        detail=True,
+        methods=('post', 'delete',),
+        permission_classes=(permissions.IsAuthenticated,),
+        url_name='favorite'
+    )
+    def favorite(self, request, pk=None):
+        if not models.Recipe.objects.filter(pk=pk).exists():
+            return response.Response(status=status.HTTP_404_NOT_FOUND)
+        if request.method == 'POST':
+            return self.add_recipe(request, pk)
+        return self.delete_recipe(request.user.favorite_records, pk)
+    
+    @decorators.action(
+        detail=False,
+        permission_classes=(permissions.IsAuthenticated,),
+        url_name='download_shopping_cart'
+    )
+    def download_shopping_cart(self, request):
+        ingredients = models.RecipeIngridients.objects.filter(
+            recipe__shopping_cart_records__user=request.user
+        ).values(
+            'ingredient__name', 'ingredient__measurement_unit',
+        ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
+        filename = 'shoping-lis.txt'
+        content = self.convert_to_string(ingredients)
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
+        return response
+
+    def convert_to_string(self, ingredients_queryset):
+        content = 'Список покупок: \n\n'
+        LINE = '- {name} ({measurement_unit}):  {amount}\n'
+        for ingredient in ingredients_queryset:
+            content += LINE.format(
+                name=ingredient['ingredient__name'],
+                measurement_unit=ingredient['ingredient__measurement_unit'],
+                amount=ingredient['total_amount'],
+            )
+        return content
+
+    def add_recipe(self, request, pk=None):
+        serializer = self.get_serializer(data={'recipe': pk})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete_recipe(self, recipe_user_records, pk=None):
+        """Для удаления нужно передать записи из списка покупок текущего пользователя."""
+        # над именами подумать
+        recipe = recipe_user_records.filter(recipe=pk)
+        if not recipe.exists():
             return response.Response(status=status.HTTP_400_BAD_REQUEST)
-        user_cart_record.delete()
+        recipe.delete()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
 
 
 
-
-
-        # if not models.Recipe.objects.filter(pk=pk).exists():
-        #     return response.Response(status=status.HTTP_404_NOT_FOUND)
-        # try:
-        #     get_object_or_404(models.ShopingCart, recipe=pk, user=request.user).delete()
-        # except:
-        #     return response.Response(status=status.HTTP_400_BAD_REQUEST)
-        # return response.Response(status=status.HTTP_204_NO_CONTENT)
+       

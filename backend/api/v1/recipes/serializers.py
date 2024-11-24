@@ -79,7 +79,7 @@ class ReadRecipeSerialiser(serializers.ModelSerializer):
         user = self.context['request'].user
         return (
             user.is_authenticated and
-            models.ShopingCart.objects.filter(user=user, recipe=instance).exists()
+            models.ShoppingCart.objects.filter(user=user, recipe=instance).exists()
         )
 
 
@@ -192,14 +192,14 @@ class AddRecipeInShopingCartSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления Рецепта в Список покупок."""
     
     class Meta:
-        model = models.ShopingCart
+        model = models.ShoppingCart
         fields = ('user', 'recipe')
         read_only_fields = ('user',)
         # extra_kwargs = {'user': {'read_only': True}}
 
     def validate(self, attrs):
         user = self.context['request'].user
-        if models.ShopingCart.objects.filter(
+        if models.ShoppingCart.objects.filter(
             recipe=attrs['recipe'], user=user
         ).exists():
             raise serializers.ValidationError('Рецепт уже добавлен в Список покупок.')
@@ -209,3 +209,24 @@ class AddRecipeInShopingCartSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         return ShortRecipeSerializer(instance.recipe).data
 
+
+class AddRecipeInFavoriteSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления Рецепта в Избранное."""
+
+    class Meta:
+        model = models.Favorite
+        fields = ('user', 'recipe')
+        read_only_fields = ('user',)
+        # extra_kwargs = {'user': {'read_only': True}}
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if models.Favorite.objects.filter(
+            recipe=attrs['recipe'], user=user
+        ).exists():
+            raise serializers.ValidationError('Рецепт уже добавлен в Избранное.')
+        attrs['user'] = user
+        return attrs
+
+    def to_representation(self, instance):
+        return ShortRecipeSerializer(instance.recipe).data

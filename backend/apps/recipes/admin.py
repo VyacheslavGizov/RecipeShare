@@ -5,7 +5,7 @@ from .models import (
     Ingredient,
     Recipe,
     RecipeIngridients,
-    ShopingCart,
+    ShoppingCart,
     Tag,
 )
 
@@ -69,7 +69,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description='Пользователей добавило в "Избранное"')
     def count_favorites(self, object):
-        return object.favorites_among_users.count()
+        return object.favorite_records.count()
 
 
 @admin.register(RecipeIngridients)
@@ -82,8 +82,8 @@ class RecipeIngridientsAdmin(admin.ModelAdmin):
     list_select_related = ('recipe',)
 
 
-@admin.register(ShopingCart)
-class ShopingCartAdmin(admin.ModelAdmin):
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
     """Настройка административной зоны для Cписка покупок"""
 
     list_display = ('id', 'user', 'recipe')
