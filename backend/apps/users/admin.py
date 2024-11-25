@@ -4,10 +4,10 @@ from django.contrib.auth import get_user_model
 from .models import Subscription
 
 
-# Донастроить по-нормальному когда будут данные
 User = get_user_model()
-
 admin.site.empty_value_display = 'Не задано'
+
+USER_SEARCH_HELP_TEXT = 'Поиск по полям: "ИМЯ ПОЛЬЗОВАТЕЛЯ", "E-MAIL"'
 
 
 @admin.register(User)
@@ -23,7 +23,7 @@ class UserAdmin(admin.ModelAdmin):
         'is_staff'
     )
     search_fields = ('email', 'username')
-    search_help_text = 'Поиск по полям: "ИМЯ ПОЛЬЗОВАТЕЛЯ", "E-MAIL"'
+    search_help_text = USER_SEARCH_HELP_TEXT
     list_filter = ('is_staff',)
     list_display_links = ('email', 'username')
     list_editable = ('is_staff',)

@@ -8,7 +8,7 @@ from api.v1.users import serializers as user_serialisers
 
 
 class TagSerializer(serializers.ModelSerializer):
-    """Сериализатор для списка Тегов."""
+    """Сериализатор для Тегов."""
 
     class Meta:
         model = models.Tag

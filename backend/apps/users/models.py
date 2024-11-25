@@ -2,15 +2,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from constants import DESCRIPTION_LENGTH_LIMIT
+
+DESCRIPTION_LENGTH_LIMIT = 20
+YOURSELF_SUBSCRIBE_MESSAGE = 'Нельзя быть подписанным на себя.'
 
 
 class CustomUser(AbstractUser):
-    """Модель пользователя."""
+    """Модель Пользователя."""
 
-    # Администратор будет реализован через is_staff,
-    
-    # добавил, потому что в AbstractUser они могут быть пустыми
     first_name = models.CharField('Имя', max_length=150)
     last_name = models.CharField('Фамилия', max_length=150)
     email = models.EmailField('E-mail', max_length=254, unique=True)
@@ -19,13 +18,7 @@ class CustomUser(AbstractUser):
         upload_to='users_avatars/',
         blank=True,
         null=True
-        # сделать дефолтную аватарку как в киттиграме
     )
-    # username задан в AbstractUser
-
-    # def_get_full_name(self):
-    #    return f'{self.first_name self.second_name}'
-    # можно использовать что-то подобное, если будет необходимо
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
@@ -48,6 +41,8 @@ User = get_user_model()
 
 
 class Subscription(models.Model):
+    """Модель Подписок."""
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -70,9 +65,9 @@ class Subscription(models.Model):
                 name='unique_subscription'
             ),
             models.CheckConstraint(
-                check=~models.Q(author=models.F('user')),  # почитать еще про F-объекты
+                check=~models.Q(author=models.F('user')),
                 name='unsubcribe_to_yourself',
-                violation_error_message='Пользователь не может быть подписан на себя.'
+                violation_error_message=YOURSELF_SUBSCRIBE_MESSAGE
             )
         ]
 

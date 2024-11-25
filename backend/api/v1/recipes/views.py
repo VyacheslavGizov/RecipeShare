@@ -1,8 +1,9 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, permissions, reverse, response, decorators, status
+from rest_framework import viewsets, permissions, response, decorators, status
+from rest_framework.reverse import reverse
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 
 from .filters import IngredientFilter, RecipesFilter
 from .serializers import (
@@ -31,7 +32,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """Вьюсет для модели Ингредиентов обеспечивающий только чтение данных."""
+    """Вьюсет для модели Ингредиентов обеспечивающий чтение данных."""
 
     queryset = models.Ingredient.objects.all()
     serializer_class = IngredientSerialiser
@@ -42,12 +43,10 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
-    """Вьюсет для модели Рецептов обеспечивает операции CRUD."""
+    """Вьюсет для модели Рецептов обеспечивающий операции CRUD."""
 
-    # над разрешениями подумать
     queryset = models.Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
-    # permission_classes = (permissions.IsAdminUser,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
     pagination_class = PageNumberPaginationWithLimit
@@ -62,61 +61,60 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return CreateUpdateRecipeSerialiser
 
     def get_permissions(self):
-        if self.action == 'retrieve':
+        if self.action in ('retrieve', 'get_link'):
             self.permission_classes = (permissions.AllowAny,)
-            # return (permissions.AllowAny,)
+        if self.action in ('shopping_cart', 'favorite',
+                           'download_shopping_cart'):
+            self.permission_classes = (permissions.IsAuthenticated,)
         return super().get_permissions()
-    
+
     def partial_update(self, request, *args, **kwargs):
-        # при putch запросе все поля обязаельные
+        # при putch запросе все поля обязаельные, над этим потом подумать
         kwargs['partial'] = False
         return self.update(request, *args, **kwargs)
-    
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-
-    @decorators.action(
-        detail=True,  # если тру, то в маршруте должен быть pk
-        permission_classes=(permissions.AllowAny,),
-        url_path='get-link',  # необходимый урл
-        url_name='get_link',  # будет использовано для имени адреса как basename-urlname (user-me-avatar)
-    )
-    def get_link(self, request, pk=None):
-        url = reverse.reverse('api:recipes-detail', kwargs={'pk': pk})
-        original_url = request.build_absolute_uri(url)  # тут додумать
-        data = {'short-link': original_url}
-        return response.Response(data)
-
     @decorators.action(
         detail=True,
+        url_path='get-link',
+        url_name='get_link',
+    )
+    def get_link(self, request, pk=None):
+        return response.Response({'short-link': request.build_absolute_uri(
+            reverse('api:recipes-detail', kwargs={'pk': pk})
+        )})
+
+    @staticmethod
+    def recipe_exist_or_404(pk):
+        if not models.Recipe.objects.filter(pk=pk).exists():
+            raise Http404
+
+    @decorators.action(
         methods=('post', 'delete',),
-        permission_classes=(permissions.IsAuthenticated,),
+        detail=True,
         url_name='shopping_cart'
     )
     def shopping_cart(self, request, pk=None):
-        if not models.Recipe.objects.filter(pk=pk).exists():
-            return response.Response(status=status.HTTP_404_NOT_FOUND)
+        self.recipe_exist_or_404(pk)
         if request.method == 'POST':
             return self.add_recipe(request, pk)
         return self.delete_recipe(request.user.shopping_cart_records, pk)
-    
+
     @decorators.action(
-        detail=True,
         methods=('post', 'delete',),
-        permission_classes=(permissions.IsAuthenticated,),
+        detail=True,
         url_name='favorite'
     )
     def favorite(self, request, pk=None):
-        if not models.Recipe.objects.filter(pk=pk).exists():
-            return response.Response(status=status.HTTP_404_NOT_FOUND)
+        self.recipe_exist_or_404(pk)
         if request.method == 'POST':
             return self.add_recipe(request, pk)
         return self.delete_recipe(request.user.favorite_records, pk)
-    
+
     @decorators.action(
         detail=False,
-        permission_classes=(permissions.IsAuthenticated,),
         url_name='download_shopping_cart'
     )
     def download_shopping_cart(self, request):
@@ -146,13 +144,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data={'recipe': pk})
         if serializer.is_valid():
             serializer.save(user=request.user)
-            return response.Response(serializer.data, status=status.HTTP_201_CREATED)
-        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def delete_recipe(self, recipe_user_records, pk=None):
-        """Для удаления нужно передать записи из списка покупок текущего пользователя."""
-        # над именами подумать
-        recipe = recipe_user_records.filter(recipe=pk)
+            return response.Response(serializer.data,
+                                     status=status.HTTP_201_CREATED)
+        return response.Response(serializer.errors,
+                                 status=status.HTTP_400_BAD_REQUEST)
+
+    def delete_recipe(self, user_selected_recipes, pk=None):
+        recipe = user_selected_recipes.filter(recipe=pk)
         if not recipe.exists():
             return response.Response(status=status.HTTP_400_BAD_REQUEST)
         recipe.delete()
