@@ -104,7 +104,7 @@ class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
         queryset=models.Tag.objects.all(),
         many=True
     )
-    image = Base64ImageField()
+    image = Base64ImageField(required=True, allow_null=False)
     author = serializers.PrimaryKeyRelatedField(
         read_only=True, default=serializers.CurrentUserDefault(),
     )

@@ -1,27 +1,23 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, permissions, response, decorators, status
-from rest_framework.reverse import reverse
 from django.db.models import Sum
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
+from rest_framework import decorators, permissions, response, status, viewsets
+
+from rest_framework.reverse import reverse
 
 from .filters import IngredientFilter, RecipesFilter
 from .serializers import (
+    AddRecipeInFavoriteSerializer,
+    AddRecipeInShopingCartSerializer,
+    CreateUpdateRecipeSerialiser,
     IngredientSerialiser,
     ReadRecipeSerialiser,
-    CreateUpdateRecipeSerialiser,
     TagSerializer,
-    AddRecipeInShopingCartSerializer,
-    AddRecipeInFavoriteSerializer,
-    AddIngredientForRecipeSerialiser
 )
-from apps.recipes import models
-# from api.pagination import PageNumberPaginationWithLimit
-from api.permissions import IsAuthorOrReadOnly
 from api.pagination import PageNumberPaginationWithLimit
+from api.permissions import IsAuthorOrReadOnly
+from apps.recipes import models
 
-
-# возможно в queryset нужно что-то заранее подгрузить, чтобы избежать доп запросов
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """Вьюсет для модели Тега обеспечивающий только чтение данных."""
@@ -70,7 +66,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def partial_update(self, request, *args, **kwargs):
-        # при putch запросе все поля обязаельные, над этим потом подумать
         kwargs['partial'] = False
         return self.update(request, *args, **kwargs)
 
