@@ -13,6 +13,7 @@ from .serializers import (
     TagSerializer,
     AddRecipeInShopingCartSerializer,
     AddRecipeInFavoriteSerializer,
+    AddIngredientForRecipeSerialiser
 )
 from apps.recipes import models
 # from api.pagination import PageNumberPaginationWithLimit
@@ -82,14 +83,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='get_link',
     )
     def get_link(self, request, pk=None):
+        self.recipe_exist_or_404(pk)
         return response.Response({'short-link': request.build_absolute_uri(
             reverse('api:recipes-detail', kwargs={'pk': pk})
         )})
-
-    @staticmethod
-    def recipe_exist_or_404(pk):
-        if not models.Recipe.objects.filter(pk=pk).exists():
-            raise Http404
 
     @decorators.action(
         methods=('post', 'delete',),
@@ -118,27 +115,34 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='download_shopping_cart'
     )
     def download_shopping_cart(self, request):
-        ingredients = models.RecipeIngridients.objects.filter(
-            recipe__shopping_cart_records__user=request.user
-        ).values(
-            'ingredient__name', 'ingredient__measurement_unit',
-        ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
-        filename = 'shoping-lis.txt'
-        content = self.convert_to_string(ingredients)
+        content = self.convert_to_string(
+            models.RecipeIngridients.objects.filter(
+                recipe__shopping_cart_records__user=request.user
+            ).values(
+                'ingredient__name', 'ingredient__measurement_unit',
+            ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
+        )
         response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format('shoping-lis.txt')
+        )
         return response
 
-    def convert_to_string(self, ingredients_queryset):
+    @staticmethod
+    def convert_to_string(ingredients):
+        LINE_FORMAT = '- {name} ({measurement_unit}):  {amount}\n'
         content = 'Список покупок: \n\n'
-        LINE = '- {name} ({measurement_unit}):  {amount}\n'
-        for ingredient in ingredients_queryset:
-            content += LINE.format(
+        for ingredient in ingredients:
+            content += LINE_FORMAT.format(
                 name=ingredient['ingredient__name'],
                 measurement_unit=ingredient['ingredient__measurement_unit'],
                 amount=ingredient['total_amount'],
             )
         return content
+
+    def recipe_exist_or_404(self, pk):
+        if not self.queryset.filter(pk=pk).exists():
+            raise Http404
 
     def add_recipe(self, request, pk=None):
         serializer = self.get_serializer(data={'recipe': pk})
@@ -149,13 +153,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return response.Response(serializer.errors,
                                  status=status.HTTP_400_BAD_REQUEST)
 
-    def delete_recipe(self, user_selected_recipes, pk=None):
-        recipe = user_selected_recipes.filter(recipe=pk)
+    def delete_recipe(self, user_chosen_recipes, pk=None):
+        recipe = user_chosen_recipes.filter(recipe=pk)
         if not recipe.exists():
             return response.Response(status=status.HTTP_400_BAD_REQUEST)
         recipe.delete()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
-       
