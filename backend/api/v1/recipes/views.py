@@ -2,7 +2,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum
 from django.http import Http404, HttpResponse
 from rest_framework import decorators, permissions, response, status, viewsets
-
 from rest_framework.reverse import reverse
 
 from .filters import IngredientFilter, RecipesFilter
@@ -64,10 +63,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
                            'download_shopping_cart'):
             self.permission_classes = (permissions.IsAuthenticated,)
         return super().get_permissions()
-
-    def partial_update(self, request, *args, **kwargs):
-        kwargs['partial'] = False
-        return self.update(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

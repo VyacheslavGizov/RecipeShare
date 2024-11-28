@@ -7,9 +7,9 @@ from api.v1.users.serializers import CustomUserSerializer
 
 READD_RECIPE_MESSAGE = 'Рецепт уже добавлен.'
 ADD_INGREDIENTS_MESSAGE = 'Добавьте ингредиенты.'
-NONUNICUE_INGREDIENTS_MESSAGE = 'Все ингредиенты должны быть уникальными.'
+NONUNIQUE_INGREDIENTS_MESSAGE = 'Все ингредиенты должны быть уникальными.'
 ADD_TAGS_MESSAGE = 'Добавьте один или несколько тегов.'
-NONUNICUE_TAGS_MESSAGE = 'Все теги должны быть уникальными.'
+NONUNIQUE_TAGS_MESSAGE = 'Все теги должны быть уникальными.'
 ADD_IMAGE_MESSAGE = 'Добавьте фото рецепта.'
 
 
@@ -79,12 +79,12 @@ class ReadRecipeSerialiser(serializers.ModelSerializer):
     def is_user_chosen_recipe(self, model, instance):
         user = self.context['request'].user
         return (
-            user.is_authenticated and
-            model.objects.filter(user=user, recipe=instance).exists()
+            user.is_authenticated
+            and model.objects.filter(user=user, recipe=instance).exists()
         )
 
 
-class AddIngredientForRecipeSerialiser(serializers.ModelSerializer):
+class AddIngredientInRecipeSerialiser(serializers.ModelSerializer):
     """Сериализатор для добавления Ингредиента в Рецепт."""
 
     id = serializers.PrimaryKeyRelatedField(
@@ -99,12 +99,13 @@ class AddIngredientForRecipeSerialiser(serializers.ModelSerializer):
 class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
     """Сериализатор для создания/изменения Рецепта."""
 
-    ingredients = AddIngredientForRecipeSerialiser(many=True, required=True)
+    ingredients = AddIngredientInRecipeSerialiser(many=True, required=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=models.Tag.objects.all(),
-        many=True
+        many=True,
+        required=True
     )
-    image = Base64ImageField(required=True, allow_null=False)
+    image = Base64ImageField()
     author = serializers.PrimaryKeyRelatedField(
         read_only=True, default=serializers.CurrentUserDefault(),
     )
@@ -127,37 +128,39 @@ class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
         if len(ingredients) != len(set(
             [ingredient['id'] for ingredient in ingredients]
         )):
-            raise serializers.ValidationError(NONUNICUE_INGREDIENTS_MESSAGE)
+            raise serializers.ValidationError(NONUNIQUE_INGREDIENTS_MESSAGE)
         return ingredients
 
     def validate_tags(self, tags):
         if not tags or not all(tags):
             raise serializers.ValidationError(ADD_TAGS_MESSAGE)
         if len(tags) != len(set(tags)):
-            raise serializers.ValidationError(NONUNICUE_TAGS_MESSAGE)
+            raise serializers.ValidationError(NONUNIQUE_TAGS_MESSAGE)
         return tags
 
     def validate_image(self, image):
-        if image is None:
+        if not image:
             raise serializers.ValidationError(ADD_IMAGE_MESSAGE)
         return image
 
     def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
+        tags, ingredients = self.extract_tags_and_ingredients(validated_data)
         recipe = models.Recipe.objects.create(**validated_data)
         return self.add_ingredients_and_tags(recipe, tags, ingredients)
 
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
+        tags, ingredients = self.extract_tags_and_ingredients(validated_data)
+        instance = super().update(instance, validated_data)
         instance.ingredients.clear()
         return self.add_ingredients_and_tags(instance, tags, ingredients)
 
     @staticmethod
+    def extract_tags_and_ingredients(validated_data):
+        return (validated_data.pop('tags'), validated_data.pop('ingredients'))
+
+    @staticmethod
     def add_ingredients_and_tags(recipe, tags, ingredients):
         recipe.tags.set(tags)
-        recipe.save()
         models.RecipeIngridients.objects.bulk_create(
             models.RecipeIngridients(
                 ingredient=ingredient['id'],
@@ -172,7 +175,7 @@ class CreateUpdateRecipeSerialiser(serializers.ModelSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
-    """Сериализатор короткого представления Рецепта."""
+    """Сериализатор сокращенного Рецепта."""
 
     class Meta:
         model = models.Recipe

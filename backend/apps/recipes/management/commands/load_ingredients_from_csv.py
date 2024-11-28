@@ -4,36 +4,32 @@ import os
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 
-from config.settings import BASE_DIR
 from apps.recipes.models import Ingredient
+from config.settings import BASE_DIR
 
 
-path = os.path.join(BASE_DIR, 'data/ingredients.csv')
+SUCCESSFULLY_MESSAGE = 'Ингредиенты успешно добавлены.'
+FAILURE_MESSAGE = 'Переданные записи уже присутствуют в таблице Ингредиентов.'
+SOME_ERROR_MESSAGE = 'Произошла какая-то ошибка.'
+FILENAME = 'ingredients.csv'
+NOT_FOUND_MESSAGE = ('Файл: {path} не найден.')
+
+path = os.path.join(BASE_DIR, 'data/' + FILENAME)
 fieldnames = ['name', 'measurement_unit']
 
 
 class Command(BaseCommand):
+    """Команда на запись Ингредиентвов в базу данных из ingredients.csv."""
+
     def handle(self, *args, **options):
-        with open(path, 'r', encoding='utf-8') as csvfile:
-            try:
+        try:
+            with open(path, 'r', encoding='utf-8') as csvfile:
                 Ingredient.objects.bulk_create((
                     Ingredient(**line)
                     for line in csv.DictReader(csvfile, fieldnames=fieldnames)
                 ))
-                print('Успешно.')
-            except IntegrityError:
-                print('Такие записи уже есть в БД.')
-            except Exception:
-                print('Возникла ошибка.')
-# class Command(BaseCommand):
-#     def handle(self, *args, **options):
-#         with open(path, 'r', encoding='utf-8') as csvfile:
-#             try:
-#                 reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-#                 records = (Ingredient(**line) for line in reader)
-#                 Ingredient.objects.bulk_create(records)  # можно все в одну строку написать
-#                 print('Успешно')
-#             except IntegrityError:  # Доработать
-#                 print('Такие записи уже есть в БД')
-#             except Exception:
-#                 print('Возникла ошибка')
+                print(SUCCESSFULLY_MESSAGE)
+        except IntegrityError:
+            print(FAILURE_MESSAGE)
+        except FileNotFoundError:
+            print(NOT_FOUND_MESSAGE.format(path=path))

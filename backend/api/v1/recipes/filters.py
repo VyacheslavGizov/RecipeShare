@@ -1,4 +1,4 @@
-from django_filters.rest_framework import filters, FilterSet
+from django_filters.rest_framework import FilterSet, filters
 from django.contrib.auth import get_user_model
 
 from apps.recipes import models
@@ -16,7 +16,7 @@ class IngredientFilter(FilterSet):
         fields = ('name',)
 
 
-class RecipesFilter(FilterSet):  # может сдеать универсальным
+class RecipesFilter(FilterSet):
     """Фильтр по избранному, автору, списку покупок и тегам."""
 
     tags = filters.ModelMultipleChoiceFilter(
@@ -41,5 +41,7 @@ class RecipesFilter(FilterSet):  # может сдеать универсаль�
 
     def get_is_in_shopping_cart(self, queryset, name, value):
         if self.request.user.is_authenticated and value == 1:
-            return queryset.filter(shopping_cart_records__user=self.request.user)
+            return queryset.filter(
+                shopping_cart_records__user=self.request.user
+            )
         return queryset

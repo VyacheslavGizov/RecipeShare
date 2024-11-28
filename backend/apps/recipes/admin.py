@@ -16,7 +16,8 @@ INGREDIENT_SEARCH_HELP_TEXT = 'Поиск по полям: "НАЗВАНИЕ"'
 RECIPE_SEARCH_HELP_TEXT = 'Поиск по: "ИМЯ ПОЛЬЗОВАТЕЛЯ", "НАЗВАНИЕ РЕЦЕПТА"'
 RECIPE_DISPLAY_MESSAGE = 'Пользователей добавило в "Избранное"'
 RECIPE_INGREDIENTS_SEARCH_HELP_TEXT = 'Поиск по полям: "НАЗВАНИЕ РЕЦЕПТА"'
-SHOPING_CART_FAVORITE_SEARCH_HELP_TEXT = 'Поиск по: "ИМЯ_ПОЛЬЗОВАТЕЛЯ", "РЕЦЕПТ"'
+SHOPING_CART_FAVORITE_SEARCH_HELP_TEXT = ('Поиск по: "ИМЯ_ПОЛЬЗОВАТЕЛЯ", '
+                                          '"РЕЦЕПТ"')
 
 
 @admin.register(Ingredient)

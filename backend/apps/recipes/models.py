@@ -91,7 +91,7 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngridients',
-        verbose_name='Ингридиенты',
+        verbose_name='Ингредиенты',
         help_text=INGREDIENT_HELP_TEXT
     )
     tags = models.ManyToManyField(
@@ -227,68 +227,3 @@ class ShoppingCart(FavoriteShoppingCartBaseModel):
             f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
             '- в Списке покупок'
         )
-
-# class Favorite(models.Model):
-#     """Модель Избранного."""
-
-#     user = models.ForeignKey(
-#         User,
-#         on_delete=models.CASCADE,
-#         verbose_name='Пользователь'
-#     )
-#     recipe = models.ForeignKey(
-#         Recipe,
-#         on_delete=models.CASCADE,
-#         verbose_name='Рецепт',
-#     )
-
-#     class Meta:
-#         verbose_name = 'Избранное'
-#         verbose_name_plural = 'Избранное'
-#         default_related_name = 'favorite_records'
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=['user', 'recipe'],
-#                 name='unique_recipe_in_favorite'
-#             )
-#         ]
-
-#     def __str__(self):
-#         return (
-#             f'{self.user}: '
-#             f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
-#             '- в Избранном'
-#         )
-
-
-# class ShoppingCart(models.Model):
-#     """Модель Списка покупок."""
-
-#     user = models.ForeignKey(
-#         User,
-#         on_delete=models.CASCADE,
-#         verbose_name='Пользователь'
-#     )
-#     recipe = models.ForeignKey(
-#         Recipe,
-#         on_delete=models.CASCADE,
-#         verbose_name='Рецепт',
-#     )
-
-#     class Meta:
-#         verbose_name = 'Список покупок'
-#         verbose_name_plural = 'Списки покупок'
-#         default_related_name = 'shopping_cart_records'
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=['user', 'recipe', ],
-#                 name='unique_recipe_in_shoping_cart'
-#             )
-#         ]
-
-#     def __str__(self):
-#         return (
-#             f'{self.user}: '
-#             f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
-#             '- в Списке покупок'
-#         )
