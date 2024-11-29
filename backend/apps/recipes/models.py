@@ -2,12 +2,10 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-from constants import DESCRIPTION_LENGTH_LIMIT
-
 
 User = get_user_model()
 
-
+DESCRIPTION_LENGTH_LIMIT = 20
 MIN_COOKING_TIME = 1
 MIN_AMMOUNT = 1
 COOKING_TIME_MESSAGE = 'Минимальное время приготовления: {cooking_time} мин.'

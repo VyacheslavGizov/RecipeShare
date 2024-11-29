@@ -105,30 +105,26 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='download_shopping_cart'
     )
     def download_shopping_cart(self, request):
-        content = self.convert_to_string(
-            models.RecipeIngridients.objects.filter(
-                recipe__shopping_cart_records__user=request.user
-            ).values(
-                'ingredient__name', 'ingredient__measurement_unit',
-            ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
-        )
-        response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = (
-            'attachment; filename={0}'.format('shoping-lis.txt')
-        )
-        return response
-
-    @staticmethod
-    def convert_to_string(ingredients):
         LINE_FORMAT = '- {name} ({measurement_unit}):  {amount}\n'
-        content = 'Список покупок: \n\n'
+        TITLE = 'Список покупок: \n\n'
+        FILENAME = 'shoping-lis.txt'
+        ingredients = models.RecipeIngridients.objects.filter(
+            recipe__shopping_cart_records__user=request.user
+        ).values(
+            'ingredient__name', 'ingredient__measurement_unit',
+        ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
+        content = TITLE
         for ingredient in ingredients:
             content += LINE_FORMAT.format(
                 name=ingredient['ingredient__name'],
                 measurement_unit=ingredient['ingredient__measurement_unit'],
                 amount=ingredient['total_amount'],
             )
-        return content
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format(FILENAME)
+        )
+        return response
 
     def recipe_exist_or_404(self, pk):
         if not self.queryset.filter(pk=pk).exists():

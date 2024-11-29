@@ -1,5 +1,5 @@
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework import serializers
+from rest_framework import serializers, validators
 
 from apps.recipes import models
 from api.v1.users.serializers import CustomUserSerializer
@@ -185,19 +185,20 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 class AddRecipeInShopingCartSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления Рецепта в Список покупок."""
 
+    user = serializers.PrimaryKeyRelatedField(
+        read_only=True, default=serializers.CurrentUserDefault(),
+    )
+
     class Meta:
         model = models.ShoppingCart
         fields = ('user', 'recipe')
-        read_only_fields = ('user',)
-
-    def validate(self, attrs):
-        user = self.context['request'].user
-        if self.Meta.model.objects.filter(
-            recipe=attrs['recipe'], user=user
-        ).exists():
-            raise serializers.ValidationError(READD_RECIPE_MESSAGE)
-        attrs['user'] = user
-        return attrs
+        validators = (
+            validators.UniqueTogetherValidator(
+                queryset=model.objects.all(),
+                fields=('user', 'recipe'),
+                message=READD_RECIPE_MESSAGE
+            ),
+        )
 
     def to_representation(self, instance):
         return ShortRecipeSerializer(instance.recipe).data
@@ -206,5 +207,13 @@ class AddRecipeInShopingCartSerializer(serializers.ModelSerializer):
 class AddRecipeInFavoriteSerializer(AddRecipeInShopingCartSerializer):
     """Сериализатор для добавления Рецепта в Избранное."""
 
-    class Meta(AddRecipeInShopingCartSerializer.Meta):
+    class Meta:
         model = models.Favorite
+        fields = ('user', 'recipe')
+        validators = (
+            validators.UniqueTogetherValidator(
+                queryset=model.objects.all(),
+                fields=('user', 'recipe'),
+                message=READD_RECIPE_MESSAGE
+            ),
+        )
