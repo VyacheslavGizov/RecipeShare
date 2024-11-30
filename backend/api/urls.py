@@ -7,7 +7,7 @@ app_name = 'api'
 
 
 urlpatterns = [
-    path('auth/', include('djoser.urls.authtoken')),
     path('', include(user_router.urls)),
     path('', include(recipe_router.urls)),
+    path('auth/', include('djoser.urls.authtoken')),
 ]
