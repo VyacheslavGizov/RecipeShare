@@ -8,12 +8,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
-
+# попробовать сделать по-другому
 SECRET_KEY = str(os.getenv('SECRET_KEY'))
 
 DEBUG = os.getenv('DEBUG') == 'True'
 
 ALLOWED_HOSTS = str(os.getenv('ALLOWED_HOSTS')).split()
+
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS = ['http://*', 'https://*']
+else:
+    CSRF_TRUSTED_ORIGINS = ['http://foodgram-project.hopto.org', 'https://foodgram-project.hopto.org']
 
 
 INSTALLED_APPS = [
@@ -24,9 +29,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'django_filters',
     'rest_framework.authtoken',
     'djoser',
+    'django_filters',
     'apps.users.apps.UsersConfig',
     'apps.recipes.apps.RecipesConfig',
 ]
