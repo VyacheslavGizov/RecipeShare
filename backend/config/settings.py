@@ -150,8 +150,8 @@ DJOSER = {
     },
     'HIDE_USERS': False,
     'PERMISSIONS': {
-        'user_list': ['rest_framework.permissions.AllowAny',],
-        'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly',],
+        'user_list': ['rest_framework.permissions.AllowAny', ],
+        'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly', ],
         'token_destroy': ['djoser.permissions.CurrentUserOrAdmin'],
     },
 }
