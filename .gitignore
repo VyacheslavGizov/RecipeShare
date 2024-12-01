@@ -140,8 +140,3 @@ dmypy.json
 
 static/
 media/
-
-/postman_collection
-/docker-compose.yml
-/docs
-/infra

@@ -12,12 +12,7 @@ from .models import (
 
 admin.site.empty_value_display = 'Не задано'
 
-INGREDIENT_SEARCH_HELP_TEXT = 'Поиск по полям: "НАЗВАНИЕ"'
-RECIPE_SEARCH_HELP_TEXT = 'Поиск по: "ИМЯ ПОЛЬЗОВАТЕЛЯ", "НАЗВАНИЕ РЕЦЕПТА"'
 RECIPE_DISPLAY_MESSAGE = 'Пользователей добавило в "Избранное"'
-RECIPE_INGREDIENTS_SEARCH_HELP_TEXT = 'Поиск по полям: "НАЗВАНИЕ РЕЦЕПТА"'
-SHOPING_CART_FAVORITE_SEARCH_HELP_TEXT = ('Поиск по: "ИМЯ_ПОЛЬЗОВАТЕЛЯ", '
-                                          '"РЕЦЕПТ"')
 
 
 @admin.register(Ingredient)
@@ -26,7 +21,6 @@ class IngredientAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'name', 'measurement_unit',)
     search_fields = ('name',)
-    search_help_text = INGREDIENT_SEARCH_HELP_TEXT
 
 
 @admin.register(Tag)
@@ -51,9 +45,8 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'count_favorites', 'author',)
     list_display_links = ('name',)
     search_fields = ('author__username', 'author__first_name', 'name')
-    search_help_text = RECIPE_SEARCH_HELP_TEXT
     list_select_related = ('author',)
-    list_filter = ('tags', 'ingredients')
+    list_filter = ('tags', 'author')
     filter_horizontal = ('tags',)
     inlines = (RecipeIngridientsInline,)
     readonly_fields = ('count_favorites',)
@@ -82,7 +75,6 @@ class RecipeIngridientsAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'recipe', 'ingredient', 'amount',)
     search_fields = ('recipe__name',)
-    search_help_text = RECIPE_INGREDIENTS_SEARCH_HELP_TEXT
     list_select_related = ('recipe',)
 
 
@@ -92,5 +84,4 @@ class ShoppingCartAndFavoriteAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'user__first_name',)
-    search_help_text = SHOPING_CART_FAVORITE_SEARCH_HELP_TEXT
     list_select_related = ('user', 'recipe',)
