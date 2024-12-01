@@ -4,13 +4,14 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, validators
 
 from apps.recipes.models import Recipe
-from apps.users.models import Subscription, YOURSELF_SUBSCRIBE_MESSAGE
+from apps.users.models import Subscription
 import api.v1.recipes as recipes_module
 
 
 User = get_user_model()
 
 NONUNICUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на этого пользователя.'
+YOURSELF_SUBSCRIBE_MESSAGE = 'Нельзя быть подписанным на себя.'
 
 
 class CustomUserSerializer(UserSerializer):

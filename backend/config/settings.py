@@ -15,11 +15,6 @@ DEBUG = os.getenv('DEBUG') == 'True'
 
 ALLOWED_HOSTS = str(os.getenv('ALLOWED_HOSTS')).split()
 
-if DEBUG:
-    CSRF_TRUSTED_ORIGINS = ['http://*', 'https://*']
-else:
-    CSRF_TRUSTED_ORIGINS = ['http://foodgram-project.hopto.org', 'https://foodgram-project.hopto.org']
-
 
 INSTALLED_APPS = [
     'django.contrib.admin',

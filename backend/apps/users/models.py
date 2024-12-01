@@ -4,7 +4,6 @@ from django.db import models
 
 
 DESCRIPTION_LENGTH_LIMIT = 20
-YOURSELF_SUBSCRIBE_MESSAGE = 'Нельзя быть подписанным на себя.'
 
 
 class CustomUser(AbstractUser):
@@ -67,7 +66,6 @@ class Subscription(models.Model):
             models.CheckConstraint(
                 check=~models.Q(author=models.F('user')),
                 name='unsubcribe_to_yourself',
-                violation_error_message=YOURSELF_SUBSCRIBE_MESSAGE
             )
         ]
 
