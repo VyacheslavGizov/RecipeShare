@@ -73,7 +73,7 @@ sudo nano /etc/nginx/sites-enabled/default
 #
 #    }
 #}
-sudo nginx -t  # Проверка корректности настроек.
+sudo nginx -t  # Проверка корректности настроек. 
 sudo systemctl start nginx  # Запуск nginx.
 ```
 - Для запуска контенеров: разместить в директории проекта файл docker-compose.production.yml и выполнить:
