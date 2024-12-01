@@ -9,12 +9,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 
 # попробовать сделать по-другому
-SECRET_KEY = str(os.getenv('SECRET_KEY'))
+SECRET_KEY = os.getenv('SECRET_KEY')
+# SECRET_KEY = str(os.getenv('SECRET_KEY'))
 
 DEBUG = os.getenv('DEBUG') == 'True'
 
 ALLOWED_HOSTS = str(os.getenv('ALLOWED_HOSTS')).split()
-
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -129,6 +129,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ),
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '10000/day',
+        'anon': '1000/day',
+    },
 
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 6,
