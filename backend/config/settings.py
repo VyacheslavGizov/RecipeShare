@@ -25,8 +25,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'djoser',
     'django_filters',
-    'apps.users.apps.UsersConfig',
-    'apps.recipes.apps.RecipesConfig',
+    # 'apps.users.apps.UsersConfig',
+    # 'apps.recipes.apps.RecipesConfig',
+    'recies.apps.RecipesConfig',
 ]
 
 MIDDLEWARE = [
@@ -116,7 +117,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'recipes.User'
+# AUTH_USER_MODEL = 'users.CustomUser'
 
 
 REST_FRAMEWORK = {
