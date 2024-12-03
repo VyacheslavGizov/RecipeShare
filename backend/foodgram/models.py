@@ -2,20 +2,17 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
-from django.db import models
 
 
 DESCRIPTION_LENGTH_LIMIT = 20
-
-NONUNIQUE_USERNAME_MESSAGE = 'Пользователь с таким именем уже существует.'
-USERNAME_VALIDATION_MESSAGE = ('Это поле может содержать только буквы, цифры и '
-                               'символы @/./+/-/_')
-MIN_COOKING_TIME = 1
 MIN_AMMOUNT = 1
-# COOKING_TIME_MESSAGE = 'Минимальное время приготовления: 1 мин.'
-# INGREDIENT_AMMOUNT_MESSAGE = 'Минимальное количество продукта: 1.'
+MIN_COOKING_TIME = 1
+
 INGREDIENT_HELP_TEXT = 'Укажите необходимые ингредиенты.'
-TAG_HELP_TEXT = 'Выберите один или несколько тегов.' 
+NONUNIQUE_USERNAME_MESSAGE = 'Пользователь с таким именем уже существует.'
+TAG_HELP_TEXT = 'Выберите один или несколько тегов.'
+USERNAME_VALIDATION_MESSAGE = ('Это поле может содержать только буквы, цифры '
+                               'и символы @/./+/-/_')
 
 
 class User(AbstractUser):
@@ -36,7 +33,7 @@ class User(AbstractUser):
         unique=True,
         validators=[
             RegexValidator(
-                regex=r'^[\w.@+-]+\z',
+                regex=r'^[\w.@+-]+\Z',
                 message=USERNAME_VALIDATION_MESSAGE
             )
         ],
@@ -52,6 +49,22 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ('username',)
+
+    @property
+    def full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
+    @property
+    def number_of_recipes(self):
+        return self.recipes.count()
+
+    @property
+    def number_of_subscriptions(self):
+        return self.subscribers.count()
+
+    @property
+    def number_of_subscribers(self):
+        return self.authors.count()
 
     def __str__(self):
         return (
@@ -122,7 +135,7 @@ class Ingredient(models.Model):
     """Модель продукта."""
 
     name = models.CharField('Название', max_length=128, db_index=True,)
-    measurement_unit = models.CharField('Мера', max_length=64,)
+    measurement_unit = models.CharField('Единица измерения', max_length=64,)
 
     class Meta:
         verbose_name = 'Продукт'
@@ -226,33 +239,30 @@ class UserAndRecipeModel(models.Model):
         user_model,
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
-        # related_name='users'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         verbose_name='Рецепт',
-        # related_name='recipes'
     )
 
     class Meta:
         abstract = True
+        default_related_name = '%(class)s'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe', ],
-                name='unique_user_recipe'
+                name='unique_users_%(class)s'
             )
         ]
-        default_related_name = '%(class)'  # проверить, проверить вместе с related_name
 
 
 class Favorite(UserAndRecipeModel):
     """Модель Избранного."""
 
-    class Meta:
+    class Meta(UserAndRecipeModel.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-        # default_related_name = 'favorites'
 
     def __str__(self):
         return (
@@ -265,10 +275,9 @@ class Favorite(UserAndRecipeModel):
 class ShoppingCart(UserAndRecipeModel):
     """Модель Списка покупок."""
 
-    class Meta:
+    class Meta(UserAndRecipeModel.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
-        # default_related_name = 'shopping_cart'
 
     def __str__(self):
         return (
