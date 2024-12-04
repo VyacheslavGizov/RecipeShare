@@ -54,18 +54,6 @@ class User(AbstractUser):
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
 
-    @property
-    def number_of_recipes(self):
-        return self.recipes.count()
-
-    @property
-    def number_of_subscriptions(self):
-        return self.subscribers.count()
-
-    @property
-    def number_of_subscribers(self):
-        return self.authors.count()
-
     def __str__(self):
         return (
             f'{self.first_name[:DESCRIPTION_LENGTH_LIMIT]} '
@@ -117,7 +105,7 @@ class Tag(models.Model):
 
     name = models.CharField('Название', max_length=32, unique=True,)
     slug = models.SlugField(
-        'Идентификатор',
+        'Метка',
         max_length=32,
         unique=True,
     )
@@ -252,7 +240,7 @@ class UserAndRecipeModel(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe', ],
-                name='unique_users_%(class)s'
+                name='unique_users_%(class)s_records'
             )
         ]
 
