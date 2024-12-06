@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.utils.safestring import mark_safe
+from django.db.models import Count, Q
 
 
 from .models import (
@@ -25,8 +26,72 @@ AVATAR_TITLE = 'Аватар'
 EMPTY_AVATAR = 'Не задан'
 RECIPE_IMAGE_TITLE = 'Фото блюда'  # есть в моделях, может объединить
 TAGS_TITLE = 'Теги'
+INGREDIENTS_TITLE = 'Продукты'
 
 # создать базовый класс с дублирующимися методами
+
+
+class ExistsBaseFilter(admin.SimpleListFilter):
+
+    def lookups(self, request, model_admin):
+        return [('exists', 'да'),
+                ('no', 'нет')]
+
+    def queryset(self, request, users):
+        users = users.annotate(parameter_quantity=Count(self.parameter_name))
+        if self.value() == 'exists':
+            return users.filter(parameter_quantity__gt=0)
+        if self.value() == 'no':
+            return users.filter(parameter_quantity=0)
+
+
+class RecipesExistsFilter(ExistsBaseFilter):
+    title = 'есть рецепты'
+    parameter_name = 'recipes'
+
+
+class SubcribersExistsFilter(ExistsBaseFilter):
+    title = 'есть подписчики'
+    parameter_name = 'authors'
+
+
+class SubcriptionsExistsFilter(ExistsBaseFilter):
+    title = 'есть подписки'
+    parameter_name = 'subscribers'
+
+
+class RecipesFilter(admin.SimpleListFilter):
+    title = 'время приготовления'
+    parameter_name = 'cooking_time'
+
+    time_costs = {  # написать функцию вычисления на основе данных
+        'fast': 15,
+        'normal': 35
+    }
+
+    def lookups(self, request, model_admin):
+        LABEL_FORMAT_1 = 'до {} мин. ({})'
+        LABEL_FORMAT_2 = 'дольше {} мин. ({})'
+        recipes = model_admin.get_queryset(request)
+        recipes_per_time_costs = {
+            key: recipes.filter(cooking_time__lte=value).count()
+            for key, value in self.time_costs.items()
+        }
+        recipes_per_time_costs['slow'] = (
+            recipes.count() - recipes_per_time_costs['normal']
+        )
+        return [
+            (value, LABEL_FORMAT_1.format(value, recipes_per_time_costs[key]))
+            for key, value in self.time_costs.items()
+        ] + [('slow', LABEL_FORMAT_2.format(self.time_costs['normal'],
+                                            recipes_per_time_costs['slow']))]
+
+    def queryset(self, request, recipes):
+        if self.value() == 'slow':
+            return recipes.filter(cooking_time__gt=self.time_costs['normal'])
+        if self.value():
+            return recipes.filter(cooking_time__lte=self.value())
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -44,7 +109,12 @@ class UserAdmin(admin.ModelAdmin):
         'is_staff',
     )
     search_fields = ('email', 'username')
-    list_filter = ('is_staff',)  # фильтр на есть рецепты, есть подписки, есть подписчики
+    list_filter = (
+        'is_staff',
+        RecipesExistsFilter,
+        SubcribersExistsFilter,
+        SubcriptionsExistsFilter
+    ) 
     list_display_links = ('email', 'username')
     list_editable = ('is_staff',)
 
@@ -121,19 +191,18 @@ class RecipeAdmin(admin.ModelAdmin):
 
     list_display = (
         'id',
-        'image_preview',
         'name',
-        'cooking_time',
-        'author',
-        # 'tags',  # нельз многие ко многим
+        'image_preview',
         'get_tags',
-        # 'ingredients',  # нельз многие ко многим
+        'cooking_time',
+        'get_ingredients',
+        'author',
         'count_favorites',
     )
     list_display_links = ('name',)
     search_fields = ('author__username', 'author__first_name', 'name')
     list_select_related = ('author',)
-    list_filter = ('tags', 'author')
+    list_filter = ('tags', 'author', RecipesFilter)
     filter_horizontal = ('tags',)
     inlines = (RecipeIngridientsInline,)
     readonly_fields = ('count_favorites',)
@@ -160,10 +229,17 @@ class RecipeAdmin(admin.ModelAdmin):
     def image_preview(self, object):
         return f'<img src="{object.image.url}" style="max-height: 100px;">'
 
+    # наверно нужно оптимизировать и убрать дублирование
     @mark_safe
     @admin.display(description=TAGS_TITLE)
     def get_tags(self, object):
-        return '<br/>'.join([str(tag) for tag in object.tags.all()])
+        return ',<br/>'.join([str(tag) for tag in object.tags.all()])
+
+    @mark_safe
+    @admin.display(description=INGREDIENTS_TITLE)
+    def get_ingredients(self, object):
+        return ',<br/>'.join([str(ingredient)
+                              for ingredient in object.ingredients.all()])
 
 
 @admin.register(RecipeIngridients)
@@ -182,4 +258,3 @@ class ShoppingCartAndFavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'user__first_name',)
     list_select_related = ('user', 'recipe',)
-

@@ -167,7 +167,7 @@ class Recipe(models.Model):
         help_text=TAG_HELP_TEXT
     )
     cooking_time = models.PositiveSmallIntegerField(
-        'Время приготовления в минутах',
+        'Время приготовления, мин.',
         validators=[MinValueValidator(MIN_COOKING_TIME)],
     )
     pub_date = models.DateTimeField(
