@@ -1,100 +1,39 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
-from django.db.models import Count, Q
+
+from .filters import (CookingTimeFilter, RecipesExistsFilter,
+                      SubcribersExistsFilter, SubcriptionsExistsFilter)
+from .models import (Favorite, Ingredient, Recipe, RecipeIngridients,
+                     ShoppingCart, Subscription, Tag)
 
 
-from .models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    RecipeIngridients,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
-
-
-User = get_user_model()
-
+AVATAR_TITLE = 'Аватар'
+EMPTY_AVATAR = 'Не задан'
 FAVORITE_RESIPE_TITLE = 'раз в Избранном'
 FULL_NAME_TITLE = 'Имя_фамилия'
+INGREDIENTS_TITLE = 'Продукты'
+RECIPE_IMAGE_TITLE = 'Фото блюда'
 RECIPES_COUNT_TITLE = 'Рецептов'
 SUBSCRIBERS_TITLE = 'Подписчиков'
 SUBSCRIPTIONS_TITLE = 'Подписок'
-AVATAR_TITLE = 'Аватар'
-EMPTY_AVATAR = 'Не задан'
-RECIPE_IMAGE_TITLE = 'Фото блюда'  # есть в моделях, может объединить
 TAGS_TITLE = 'Теги'
-INGREDIENTS_TITLE = 'Продукты'
 
-# создать базовый класс с дублирующимися методами
+User = get_user_model()
 
-
-class ExistsBaseFilter(admin.SimpleListFilter):
-
-    def lookups(self, request, model_admin):
-        return [('exists', 'да'),
-                ('no', 'нет')]
-
-    def queryset(self, request, users):
-        users = users.annotate(parameter_quantity=Count(self.parameter_name))
-        if self.value() == 'exists':
-            return users.filter(parameter_quantity__gt=0)
-        if self.value() == 'no':
-            return users.filter(parameter_quantity=0)
+admin.site.unregister(Group)
 
 
-class RecipesExistsFilter(ExistsBaseFilter):
-    title = 'есть рецепты'
-    parameter_name = 'recipes'
+class RecipesCountBaseAdmin(admin.ModelAdmin):
 
-
-class SubcribersExistsFilter(ExistsBaseFilter):
-    title = 'есть подписчики'
-    parameter_name = 'authors'
-
-
-class SubcriptionsExistsFilter(ExistsBaseFilter):
-    title = 'есть подписки'
-    parameter_name = 'subscribers'
-
-
-class RecipesFilter(admin.SimpleListFilter):
-    title = 'время приготовления'
-    parameter_name = 'cooking_time'
-
-    time_costs = {  # написать функцию вычисления на основе данных
-        'fast': 15,
-        'normal': 35
-    }
-
-    def lookups(self, request, model_admin):
-        LABEL_FORMAT_1 = 'до {} мин. ({})'
-        LABEL_FORMAT_2 = 'дольше {} мин. ({})'
-        recipes = model_admin.get_queryset(request)
-        recipes_per_time_costs = {
-            key: recipes.filter(cooking_time__lte=value).count()
-            for key, value in self.time_costs.items()
-        }
-        recipes_per_time_costs['slow'] = (
-            recipes.count() - recipes_per_time_costs['normal']
-        )
-        return [
-            (value, LABEL_FORMAT_1.format(value, recipes_per_time_costs[key]))
-            for key, value in self.time_costs.items()
-        ] + [('slow', LABEL_FORMAT_2.format(self.time_costs['normal'],
-                                            recipes_per_time_costs['slow']))]
-
-    def queryset(self, request, recipes):
-        if self.value() == 'slow':
-            return recipes.filter(cooking_time__gt=self.time_costs['normal'])
-        if self.value():
-            return recipes.filter(cooking_time__lte=self.value())
+    @admin.display(description=RECIPES_COUNT_TITLE)
+    def recipes_count(self, object):
+        return object.recipes.count()
 
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(RecipesCountBaseAdmin):
     """Настройка административной зоны для модели Пользователя."""
 
     list_display = (
@@ -113,18 +52,14 @@ class UserAdmin(admin.ModelAdmin):
         'is_staff',
         RecipesExistsFilter,
         SubcribersExistsFilter,
-        SubcriptionsExistsFilter
-    ) 
+        SubcriptionsExistsFilter,
+    )
     list_display_links = ('email', 'username')
     list_editable = ('is_staff',)
 
     @admin.display(description=FULL_NAME_TITLE)
     def full_name(self, object):
         return object.full_name
-
-    @admin.display(description=RECIPES_COUNT_TITLE)
-    def recipes_count(self, object):
-        return object.recipes.count()
 
     @admin.display(description=SUBSCRIPTIONS_TITLE)
     def subscriprions_count(self, object):
@@ -154,28 +89,20 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Ingredient)
-class IngredientAdmin(admin.ModelAdmin):
+class IngredientAdmin(RecipesCountBaseAdmin):
     """Настройка административной зоны для модели Ингредиентов."""
 
     list_display = ('id', 'name', 'measurement_unit', 'recipes_count')
     search_fields = ('name', 'measurement_unit')
     list_filter = ('measurement_unit',)
 
-    @admin.display(description=RECIPES_COUNT_TITLE)
-    def recipes_count(self, object):  # повторяется
-        return object.recipes.count()
-
 
 @admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+class TagAdmin(RecipesCountBaseAdmin):
     """Настройка административной зоны для модели Тегов."""
 
     list_display = ('id', 'name', 'slug', 'recipes_count')
     list_display_links = ('name', 'slug',)
-
-    @admin.display(description=RECIPES_COUNT_TITLE)
-    def recipes_count(self, object):  # повторяется
-        return object.recipes.count()
 
 
 class RecipeIngridientsInline(admin.TabularInline):
@@ -202,7 +129,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display_links = ('name',)
     search_fields = ('author__username', 'author__first_name', 'name')
     list_select_related = ('author',)
-    list_filter = ('tags', 'author', RecipesFilter)
+    list_filter = ('tags', 'author', CookingTimeFilter)
     filter_horizontal = ('tags',)
     inlines = (RecipeIngridientsInline,)
     readonly_fields = ('count_favorites',)
@@ -229,17 +156,18 @@ class RecipeAdmin(admin.ModelAdmin):
     def image_preview(self, object):
         return f'<img src="{object.image.url}" style="max-height: 100px;">'
 
-    # наверно нужно оптимизировать и убрать дублирование
     @mark_safe
     @admin.display(description=TAGS_TITLE)
     def get_tags(self, object):
-        return ',<br/>'.join([str(tag) for tag in object.tags.all()])
+        return self.display_description_objects(object.tags.all())
 
     @mark_safe
     @admin.display(description=INGREDIENTS_TITLE)
     def get_ingredients(self, object):
-        return ',<br/>'.join([str(ingredient)
-                              for ingredient in object.ingredients.all()])
+        return self.display_description_objects(object.ingredients.all())
+
+    def display_description_objects(self, objects):
+        return ',<br/>'.join([str(object) for object in objects])
 
 
 @admin.register(RecipeIngridients)
