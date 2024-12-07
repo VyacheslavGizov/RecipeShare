@@ -26,7 +26,7 @@ INSTALLED_APPS = [
     'djoser',
     'django_filters',
     'foodgram.apps.FoodgramConfig',
-    # 'api.apps.ApiConfig',
+    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -117,42 +117,41 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'foodgram.User'
-# AUTH_USER_MODEL = 'users.CustomUser'
 
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         'rest_framework.authentication.TokenAuthentication',
-#     ),
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    ),
 
-#     'DEFAULT_PERMISSION_CLASSES': (
-#         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-#     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ),
 
-#     'DEFAULT_THROTTLE_CLASSES': [
-#         'rest_framework.throttling.UserRateThrottle',
-#         'rest_framework.throttling.AnonRateThrottle',
-#     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
 
-#     'DEFAULT_THROTTLE_RATES': {
-#         'user': '10000/day',
-#         'anon': '1000/day',
-#     },
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '10000/day',
+        'anon': '1000/day',
+    },
 
-#     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-#     'PAGE_SIZE': 6,
-# }
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 6,
+}
 
-# DJOSER = {
-#     'LOGIN_FIELD': 'email',
-#     'SERIALIZERS': {
-#         'user': 'api.v1.users.serializers.CustomUserSerializer',
-#         'current_user': 'api.v1.users.serializers.CustomUserSerializer',
-#     },
-#     'HIDE_USERS': False,
-#     'PERMISSIONS': {
-#         'user_list': ['rest_framework.permissions.AllowAny', ],
-#         'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly', ],
-#         'token_destroy': ['djoser.permissions.CurrentUserOrAdmin'],
-#     },
-# }
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+    'SERIALIZERS': {
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
+    },
+    'HIDE_USERS': False,
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.AllowAny', ],
+        'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly', ],
+        'token_destroy': ['djoser.permissions.CurrentUserOrAdmin'],
+    },
+}
