@@ -97,7 +97,7 @@ class Subscription(models.Model):
             ),
             models.CheckConstraint(
                 check=~models.Q(author=models.F('user')),
-                name='unsubcribe_to_yourself',
+                name='unsubscribe_to_yourself',
             )
         ]
 

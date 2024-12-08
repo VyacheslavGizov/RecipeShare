@@ -31,35 +31,46 @@ class SubcriptionsExistsFilter(ExistsBaseFilter):
     parameter_name = 'subscribers'
 
 
-class CookingTimeFilter(admin.SimpleListFilter):
+class CookingTimeFilter(admin.SimpleListFilter):  # как отработает без рецептов
     title = 'Время приготовления'
     parameter_name = 'cooking_time'
 
-    time_costs = {  # написать функцию вычисления на основе данных
-        'fast': 15,
-        'normal': 35
-    }
+    default_time_limits = [15, 35]
+    time_limits = None
 
     def lookups(self, request, model_admin):
         LESS_FORMAT = 'до {} мин. ({})'
-        LESS_FORMAT = 'дольше {} мин. ({})'
+        LONGER_FORMAT = 'дольше {} мин. ({})'
         recipes = model_admin.get_queryset(request)
-        recipes_per_time_costs = {
-            legend: recipes.filter(cooking_time__lte=time_cost).count()
-            for legend, time_cost in self.time_costs.items()
-        }
-        recipes_per_time_costs['slow'] = (
-            recipes.count() - recipes_per_time_costs['normal']
-        )
+        self.time_limits = self.get_time_limits(recipes)
+        recipes_per_time_limits = [
+            (time_limit, recipes.filter(cooking_time__lte=time_limit).count())
+            for time_limit in self.time_limits
+        ]
         return [
-            (time_cost, LESS_FORMAT.format(
-                time_cost, recipes_per_time_costs[legend]
-            )) for legend, time_cost in self.time_costs.items()
-        ] + [('slow', LESS_FORMAT.format(self.time_costs['normal'],
-                                         recipes_per_time_costs['slow']))]
+            (time_limit, LESS_FORMAT.format(time_limit, recipes_number))
+            for time_limit, recipes_number in recipes_per_time_limits
+        ] + [('long', LONGER_FORMAT.format(
+            self.time_limits[-1],
+            recipes.count() - recipes_per_time_limits[-1][1]
+        ))]
 
     def queryset(self, request, recipes):
-        if self.value() == 'slow':
-            return recipes.filter(cooking_time__gt=self.time_costs['normal'])
+        if self.value() == 'long':
+            return recipes.filter(cooking_time__gt=self.time_limits[-1])
         if self.value():
             return recipes.filter(cooking_time__lte=self.value())
+
+    def get_time_limits(self, recipes):
+        cooking_times = list(set(
+            [item[0] for item in recipes.values_list('cooking_time')]
+        ))
+        if len(cooking_times) < 3:
+            return self.default_time_limits
+        min_time = min(cooking_times)
+        max_time = max(cooking_times)
+        higher_limit = round(0.5 * (max_time + min_time))
+        lower_limit = round(0.5 * (higher_limit + min_time))
+        if lower_limit == higher_limit:
+            return [min_time, higher_limit]
+        return [lower_limit, higher_limit]
