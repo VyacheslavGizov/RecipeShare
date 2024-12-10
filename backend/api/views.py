@@ -1,16 +1,40 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db.models import Sum
 from django.db.utils import IntegrityError
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
-from djoser.views import UserViewSet as BaseUserViewSet
 from djoser.permissions import CurrentUserOrAdmin
-from rest_framework import decorators, permissions, response, status
+from djoser.views import UserViewSet as BaseUserViewSet
+from rest_framework import decorators, permissions, response, status, viewsets, serializers
+from rest_framework.reverse import reverse
 
-from .serializers import AvatarSerializer, UserInSubscriptionsSerializer
 from .pagination import PageNumberPaginationWithLimit
-from foodgram.models import Subscription
+from foodgram.models import (
+    Subscription,
+    Tag,
+    Ingredient,
+    Recipe,
+    RecipeIngridients,
+)
+from .filters import IngredientFilter, RecipesFilter
+from .serializers import (
+    AvatarSerializer,
+    IngredientSerialiser,
+    ReadRecipeSerialiser,
+    TagSerializer,
+    UserInSubscriptionsSerializer,
+    WriteRecipeSerialiser,
+)
+from .pagination import PageNumberPaginationWithLimit
+from .permissions import IsAuthorOrReadOnly
+
 
 
 User = get_user_model()
+
+WRONG_SUBSCRIBE_MESSAGE = 'Ошибка валидации - {error}'
 
 
 class UserViewSet(BaseUserViewSet):
@@ -56,9 +80,8 @@ class UserViewSet(BaseUserViewSet):
             try:
                 Subscription.objects.create(user=user, author=author)
             except IntegrityError as error:
-                return response.Response(
-                    str(error),
-                    status=status.HTTP_400_BAD_REQUEST
+                raise serializers.ValidationError(
+                    WRONG_SUBSCRIBE_MESSAGE.format(error=error)
                 )
             return response.Response(
                 self.get_serializer(author).data,
@@ -76,3 +99,139 @@ class UserViewSet(BaseUserViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return response.Response(serializer.data)
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    """Вьюсет для модели Тега обеспечивающий только чтение данных."""
+
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    pagination_class = None
+    permission_classes = (permissions.AllowAny,)
+
+
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
+    """Вьюсет для модели Продукта, обеспечивающий чтение данных."""
+
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerialiser
+    pagination_class = None
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+    permission_classes = (permissions.AllowAny,)
+
+
+class RecipesViewSet(viewsets.ModelViewSet):
+    """Вьюсет для модели Рецептов обеспечивающий операции CRUD."""
+
+    queryset = Recipe.objects.all()
+    permission_classes = (IsAuthorOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipesFilter
+    pagination_class = PageNumberPaginationWithLimit
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return ReadRecipeSerialiser
+        # if self.action == 'shopping_cart':
+        #     return AddRecipeInShopingCartSerializer
+        # if self.action == 'favorite':
+        #     return AddRecipeInFavoriteSerializer
+        return WriteRecipeSerialiser
+
+    # def get_permissions(self):
+    #     if self.action in ('retrieve', 'get_link'):
+    #         self.permission_classes = (permissions.AllowAny,)
+    #     if self.action in ('shopping_cart', 'favorite',
+    #                        'download_shopping_cart'):
+    #         self.permission_classes = (permissions.IsAuthenticated,)
+    #     return super().get_permissions()
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    @decorators.action(
+        detail=True,
+        permission_classes=(permissions.AllowAny,),  # добавил
+        url_path='get-link',
+        url_name='get_link',
+    )
+    def get_link(self, request, pk=None):
+        self.recipe_exist_or_404(pk)
+        return response.Response({'short-link': request.build_absolute_uri(
+            reverse('api:recipes-detail', args=[pk])
+            # reverse('api:recipes-detail', kwargs={'pk': pk})
+        )})
+
+    @decorators.action(
+        methods=('post', 'delete',),
+        permission_classes=(permissions.IsAuthenticated,),  # добавил
+        detail=True,
+        url_name='shopping_cart'
+    )
+    def shopping_cart(self, request, pk=None):
+        if request.method == 'POST':
+            return self.create_recipe(request, pk)
+        return self.delete_recipe(request.user.shoppingcart, pk)  # возможно другое related_name
+
+    @decorators.action(
+        methods=('post', 'delete',),
+        permission_classes=(permissions.IsAuthenticated,),  # добавил
+        detail=True,
+        url_name='favorite'
+    )
+    def favorite(self, request, pk=None):
+        if request.method == 'POST':
+            return self.create_recipe(request, pk)
+        return self.delete_recipe(request.user.favorite, pk)
+
+# жестко переписать
+    @decorators.action(
+        detail=False,
+        permission_classes=(permissions.IsAuthenticated,),  # добавил
+        url_name='download_shopping_cart'
+    )
+    def download_shopping_cart(self, request):
+        LINE_FORMAT = '- {name} ({measurement_unit}):  {amount}\n'
+        TITLE = 'Список покупок: \n\n'
+        FILENAME = 'shoping-list.txt'
+        ingredients = RecipeIngridients.objects.filter(
+            recipe__shopping_cart_records__user=request.user
+        ).values(
+            'ingredient__name', 'ingredient__measurement_unit',
+        ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
+        content = TITLE
+        for ingredient in ingredients:
+            content += LINE_FORMAT.format(
+                name=ingredient['ingredient__name'],
+                measurement_unit=ingredient['ingredient__measurement_unit'],
+                amount=ingredient['total_amount'],
+            )
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format(FILENAME)
+        )
+        return response
+
+# вернуться и доработать
+    def recipe_exist_or_404(self, pk):
+        if not self.queryset.filter(pk=pk).exists():
+            raise Http404
+
+    def create_recipe(self, request, pk=None):
+        serializer = self.get_serializer(data={'recipe': pk})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return response.Response(serializer.data,
+                                     status=status.HTTP_201_CREATED)
+        return response.Response(serializer.errors,
+                                 status=status.HTTP_400_BAD_REQUEST)
+
+    def delete_recipe(self, user_chosen_recipes, pk=None):
+        get_object_or_404(user_chosen_recipes, recipe=pk).delete()
+        return response.Response(status=status.HTTP_204_NO_CONTENT)
+        # recipe = user_chosen_recipes.filter(recipe=pk)
+        # if not recipe.exists():
+        #     return response.Response(status=status.HTTP_400_BAD_REQUEST)
+        # recipe.delete()
+        # return response.Response(status=status.HTTP_204_NO_CONTENT)

@@ -3,6 +3,12 @@ from django.db.models import Count
 
 
 class ExistsBaseFilter(admin.SimpleListFilter):
+    """
+    Базовый класс для фильтров по признаку существования записей
+    связанной вторичной модели. В parameter_name необходимо указать
+    related_name вторичной модели.
+    """
+    # проверить оформление докстринга
 
     def lookups(self, request, model_admin):
         return [('exists', 'да'),
@@ -31,7 +37,7 @@ class SubcriptionsExistsFilter(ExistsBaseFilter):
     parameter_name = 'subscribers'
 
 
-class CookingTimeFilter(admin.SimpleListFilter):  # как отработает без рецептов
+class CookingTimeFilter(admin.SimpleListFilter):
     title = 'Время приготовления'
     parameter_name = 'cooking_time'
 

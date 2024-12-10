@@ -125,7 +125,7 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    """Модель продукта."""
+    """Модель Продукта."""
 
     name = models.CharField('Название', max_length=128, db_index=True,)
     measurement_unit = models.CharField('Единица измерения', max_length=64,)
@@ -142,10 +142,7 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
-        return (
-            f'{self.name[:DESCRIPTION_LENGTH_LIMIT]}, '
-            f'{self.measurement_unit[:DESCRIPTION_LENGTH_LIMIT]}'
-        )
+        return f'{self.name[:DESCRIPTION_LENGTH_LIMIT]}'
 
 
 class Recipe(models.Model):
