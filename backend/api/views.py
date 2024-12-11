@@ -17,6 +17,7 @@ from foodgram.models import (
     Ingredient,
     Recipe,
     RecipeIngridients,
+    Favorite,
 )
 from .filters import IngredientFilter, RecipesFilter
 from .serializers import (
@@ -26,15 +27,16 @@ from .serializers import (
     TagSerializer,
     UserInSubscriptionsSerializer,
     WriteRecipeSerialiser,
+    ShortRecipeSerializer
 )
 from .pagination import PageNumberPaginationWithLimit
 from .permissions import IsAuthorOrReadOnly
 
 
-
 User = get_user_model()
 
-WRONG_SUBSCRIBE_MESSAGE = 'Ошибка валидации - {error}'
+VALIDATION_ERROR_MESSAGE = 'Ошибка валидации - {error}'
+RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.'
 
 
 class UserViewSet(BaseUserViewSet):
@@ -81,7 +83,7 @@ class UserViewSet(BaseUserViewSet):
                 Subscription.objects.create(user=user, author=author)
             except IntegrityError as error:
                 raise serializers.ValidationError(
-                    WRONG_SUBSCRIBE_MESSAGE.format(error=error)
+                    VALIDATION_ERROR_MESSAGE.format(error=error)
                 )
             return response.Response(
                 self.get_serializer(author).data,
@@ -133,19 +135,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return ReadRecipeSerialiser
-        # if self.action == 'shopping_cart':
-        #     return AddRecipeInShopingCartSerializer
-        # if self.action == 'favorite':
-        #     return AddRecipeInFavoriteSerializer
         return WriteRecipeSerialiser
-
-    # def get_permissions(self):
-    #     if self.action in ('retrieve', 'get_link'):
-    #         self.permission_classes = (permissions.AllowAny,)
-    #     if self.action in ('shopping_cart', 'favorite',
-    #                        'download_shopping_cart'):
-    #         self.permission_classes = (permissions.IsAuthenticated,)
-    #     return super().get_permissions()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -160,7 +150,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
         self.recipe_exist_or_404(pk)
         return response.Response({'short-link': request.build_absolute_uri(
             reverse('api:recipes-detail', args=[pk])
-            # reverse('api:recipes-detail', kwargs={'pk': pk})
         )})
 
     @decorators.action(
@@ -180,9 +169,21 @@ class RecipesViewSet(viewsets.ModelViewSet):
         detail=True,
         url_name='favorite'
     )
+    
+    # сделать один общий метод 
     def favorite(self, request, pk=None):
         if request.method == 'POST':
-            return self.create_recipe(request, pk)
+            try:
+                recipe = self.get_object()
+                Favorite.objects.create(user=request.user, recipe=recipe)
+            except IntegrityError as error:
+                raise serializers.ValidationError(
+                    VALIDATION_ERROR_MESSAGE.format(error=error)
+                )
+            return response.Response(
+                ShortRecipeSerializer(recipe).data,
+                status=status.HTTP_201_CREATED
+            )
         return self.delete_recipe(request.user.favorite, pk)
 
 # жестко переписать
@@ -213,25 +214,17 @@ class RecipesViewSet(viewsets.ModelViewSet):
         )
         return response
 
-# вернуться и доработать
-    def recipe_exist_or_404(self, pk):
+    def recipe_exist_or_400(self, pk):
         if not self.queryset.filter(pk=pk).exists():
-            raise Http404
+            raise serializers.ValidationError(
+                RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
 
     def create_recipe(self, request, pk=None):
         serializer = self.get_serializer(data={'recipe': pk})
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return response.Response(serializer.data,
-                                     status=status.HTTP_201_CREATED)
-        return response.Response(serializer.errors,
-                                 status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid()
+        serializer.save(user=request.user)
+        return response.Response(serializer.data)
 
     def delete_recipe(self, user_chosen_recipes, pk=None):
         get_object_or_404(user_chosen_recipes, recipe=pk).delete()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
-        # recipe = user_chosen_recipes.filter(recipe=pk)
-        # if not recipe.exists():
-        #     return response.Response(status=status.HTTP_400_BAD_REQUEST)
-        # recipe.delete()
-        # return response.Response(status=status.HTTP_204_NO_CONTENT)

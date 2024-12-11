@@ -26,7 +26,7 @@ READD_RECIPE_MESSAGE = 'Рецепт уже добавлен.'
 ADD_INGREDIENTS_MESSAGE = 'Добавьте ингредиенты.'
 NONUNIQUE_INGREDIENTS_MESSAGE = 'Найдены повторяющиеся продукты: {duplicates}.'
 ADD_TAGS_MESSAGE = 'Добавьте один или несколько тегов.'
-NONUNIQUE_TAGS_MESSAGE = 'Все теги должны быть уникальными.'
+NONUNIQUE_TAGS_MESSAGE = 'Найдены повторяющиеся теги: {duplicates}.'
 ADD_IMAGE_MESSAGE = 'Добавьте фото рецепта.'
 
 
@@ -186,7 +186,7 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         many=True,
         required=True
     )
-    image = Base64ImageField() 
+    image = Base64ImageField()
     author = serializers.PrimaryKeyRelatedField(
         read_only=True, default=serializers.CurrentUserDefault(),
     )
@@ -203,34 +203,31 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
             'author',
         )
 
-    def validate_ingredients(self, ingredients):
-        if not ingredients or not all(ingredients):
+    def get_duplicates_info(self, elements):
+        return ';'.join([
+            f'{element} ({count})'
+            for element, count in dict(Counter(elements)).items()
+            if count > 1
+        ])
+
+    def validate_ingredients(self, recipe_ingredients):
+        if not recipe_ingredients or not all(recipe_ingredients):
             raise serializers.ValidationError(ADD_INGREDIENTS_MESSAGE)
-        # print(type(ingredients))
-        # print(ingredients)
-        # if len(ingredients) != len(set(ingredients)):
-        if len(ingredients) != len(set(
-            [ingredient['id'] for ingredient in ingredients]
-        )):
-            print(ingredients[0]['id'].name)
-            # print(Counter([ingredient['name']for ingredient in ingredients]))
-            raise serializers.ValidationError(NONUNIQUE_INGREDIENTS_MESSAGE)
-            # raise serializers.ValidationError(
-            #     NONUNIQUE_INGREDIENTS_MESSAGE.format(
-            #         ';'.join([
-            #             f'{ingredient}: {count}'
-            #             for ingredient, count in Counter(ingredients)
-            #             if count > 1
-            #         ])
-            #     )
-            # )
-        return ingredients
+        ingredients = [ingredient['id'] for ingredient in recipe_ingredients]
+        if len(recipe_ingredients) != len(set(ingredients)):
+            raise serializers.ValidationError(
+                NONUNIQUE_INGREDIENTS_MESSAGE.format(
+                    duplicates=self.get_duplicates_info(ingredients)
+                ))
+        return recipe_ingredients
 
     def validate_tags(self, tags):
         if not tags or not all(tags):
             raise serializers.ValidationError(ADD_TAGS_MESSAGE)
-        if len(tags) != len(set(tags)):  # после отладки дублирование тегов также сделать
-            raise serializers.ValidationError(NONUNIQUE_TAGS_MESSAGE)
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError(NONUNIQUE_TAGS_MESSAGE.format(
+                duplicates=self.get_duplicates_info(tags)
+            ))
         return tags
 
     def validate_image(self, image):
@@ -243,7 +240,7 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         recipe = super().create(validated_data)
         return self.add_ingredients_and_tags(recipe, tags, ingredients)
 
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data):  # проверить, работает ли в приложении бнвление
         tags, ingredients = self.extract_tags_and_ingredients(validated_data)
         instance.ingredients.clear()
         return self.add_ingredients_and_tags(
@@ -251,11 +248,6 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
             tags,
             ingredients
         )
-    # def update(self, instance, validated_data):
-    #     tags, ingredients = self.extract_tags_and_ingredients(validated_data)
-    #     instance = super().update(instance, validated_data)
-    #     instance.ingredients.clear()
-    #     return self.add_ingredients_and_tags(instance, tags, ingredients)
 
     @staticmethod
     def extract_tags_and_ingredients(validated_data):
