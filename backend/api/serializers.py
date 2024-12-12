@@ -54,7 +54,7 @@ class UserSerializer(BaseUserSerializer):
 class AvatarSerializer(serializers.ModelSerializer):
     """Сериализатор для обновления/удаления аватарки Пользователя."""
 
-    avatar = Base64ImageField()  # в рецептах это поле указано как лишнее
+    avatar = Base64ImageField()
 
     class Meta:
         model = User
@@ -188,8 +188,7 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
     )
     image = Base64ImageField()
     author = serializers.PrimaryKeyRelatedField(
-        read_only=True, default=serializers.CurrentUserDefault(),
-    )
+        read_only=True, default=serializers.CurrentUserDefault(),)
 
     class Meta:
         model = Recipe
@@ -240,7 +239,7 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         recipe = super().create(validated_data)
         return self.add_ingredients_and_tags(recipe, tags, ingredients)
 
-    def update(self, instance, validated_data):  # проверить, работает ли в приложении бнвление
+    def update(self, instance, validated_data):  # проверить, работает ли в приложении обновление
         tags, ingredients = self.extract_tags_and_ingredients(validated_data)
         instance.ingredients.clear()
         return self.add_ingredients_and_tags(
@@ -267,40 +266,3 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return ReadRecipeSerialiser(instance, context=self.context).data
-
-
-# class AddRecipeInShopingCartSerializer(serializers.ModelSerializer):
-#     """Сериализатор для добавления Рецепта в Список покупок."""
-
-#     user = serializers.PrimaryKeyRelatedField(
-#         read_only=True, default=serializers.CurrentUserDefault(),
-#     )
-
-#     class Meta:
-#         model = models.ShoppingCart
-#         fields = ('user', 'recipe')
-#         validators = (
-#             validators.UniqueTogetherValidator(
-#                 queryset=model.objects.all(),
-#                 fields=('user', 'recipe'),
-#                 message=READD_RECIPE_MESSAGE
-#             ),
-#         )
-
-#     def to_representation(self, instance):
-#         return ShortRecipeSerializer(instance.recipe).data
-
-
-# class AddRecipeInFavoriteSerializer(AddRecipeInShopingCartSerializer):
-#     """Сериализатор для добавления Рецепта в Избранное."""
-
-#     class Meta:
-#         model = models.Favorite
-#         fields = ('user', 'recipe')
-#         validators = (
-#             validators.UniqueTogetherValidator(
-#                 queryset=model.objects.all(),
-#                 fields=('user', 'recipe'),
-#                 message=READD_RECIPE_MESSAGE
-#             ),
-#         )

@@ -54,11 +54,6 @@ class User(AbstractUser):
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
 
-    # def delete(self, *args, **kwargs):  # почему-то не удаляет
-    #     storage, path = self.avatar.storage, self.avatar.path
-    #     super(User, self).delete(*args, **kwargs)
-    #     storage.delete(path)
-
     def __str__(self):
         return (
             f'{self.first_name[:DESCRIPTION_LENGTH_LIMIT]} '
