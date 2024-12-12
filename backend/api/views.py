@@ -170,7 +170,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='favorite'
     )
     
-    # сделать один общий метод 
+    # сделать один общий метод для избранного и корзины
     def favorite(self, request, pk=None):
         if request.method == 'POST':
             try:
