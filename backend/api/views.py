@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.db.utils import IntegrityError
-from django.http import HttpResponse
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet as BaseUserViewSet
@@ -11,15 +11,17 @@ from rest_framework import decorators, permissions, response, status, viewsets, 
 from rest_framework.reverse import reverse
 
 from .pagination import PageNumberPaginationWithLimit
-from foodgram.models import (
-    Subscription,
-    Tag,
-    Ingredient,
-    Recipe,
-    RecipeIngridients,
-    Favorite,
-    ShoppingCart
-)
+from .utils import render_shopping_cart
+# from foodgram.models import (
+#     Subscription,
+#     Tag,
+#     Ingredient,
+#     Recipe,
+#     RecipeIngridients,
+#     Favorite,
+#     ShoppingCart
+# )
+from foodgram.models import *
 from .filters import IngredientFilter, RecipesFilter
 from .serializers import (
     AvatarSerializer,
@@ -181,8 +183,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return self.add_to_user_chosen(Favorite, user)
         return self.delete_from_user_chosen(user.favorite, pk)
 
-    
-# жестко переписать
     @decorators.action(
         detail=False,
         permission_classes=(permissions.IsAuthenticated,),  # добавил возможно не нужно в приложении
@@ -190,15 +190,19 @@ class RecipesViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        recipes = Recipe.objects.filter(shoppingcart__user=user).values('name')
+        recipes = Recipe.objects.filter(shoppingcart__user=user).values_list(
+            'name', flat=True).order_by('name')
         ingredients = RecipeIngridients.objects.filter(
             recipe__shoppingcart__user=user
-        ).values(
+        ).values_list(
             'ingredient__name', 'ingredient__measurement_unit',
         ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
-        print(recipes)
-        print(ingredients)
-        return response.Response(status=status.HTTP_200_OK)
+        print(render_shopping_cart(recipes, ingredients))
+        return FileResponse(
+            render_shopping_cart(recipes, ingredients),
+            as_attachment=True,
+            filename='shopping-list.txt'
+        )
 
     def recipe_exist_or_400(self, pk):
         if not self.queryset.filter(pk=pk).exists():

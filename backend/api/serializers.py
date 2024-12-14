@@ -234,6 +234,21 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
             raise serializers.ValidationError(ADD_IMAGE_MESSAGE)
         return image
 
+    # def create(self, validated_data):
+    #     tags = validated_data.pop('tags')
+    #     ingredients = validated_data.pop('ingredients')
+    #     recipe = super().create(validated_data)
+    #     return self.add_ingredients_and_tags(recipe, tags, ingredients)
+
+    # def update(self, instance, validated_data):
+    #     tags = validated_data.pop('tags', instance.tags)
+    #     ingredients = validated_data.pop('ingredients', instance.ingredients)
+    #     instance.ingredients.clear()
+    #     return self.add_ingredients_and_tags(
+    #         super().update(instance, validated_data),
+    #         tags,
+    #         ingredients
+    #     )
     def create(self, validated_data):
         tags, ingredients = self.extract_tags_and_ingredients(validated_data)
         recipe = super().create(validated_data)
