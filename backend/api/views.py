@@ -12,16 +12,15 @@ from rest_framework.reverse import reverse
 
 from .pagination import PageNumberPaginationWithLimit
 from .utils import render_shopping_cart
-# from foodgram.models import (
-#     Subscription,
-#     Tag,
-#     Ingredient,
-#     Recipe,
-#     RecipeIngridients,
-#     Favorite,
-#     ShoppingCart
-# )
-from foodgram.models import *
+from foodgram.models import (
+    Subscription,
+    Tag,
+    Ingredient,
+    Recipe,
+    RecipeIngridients,
+    Favorite,
+    ShoppingCart
+)
 from .filters import IngredientFilter, RecipesFilter
 from .serializers import (
     AvatarSerializer,

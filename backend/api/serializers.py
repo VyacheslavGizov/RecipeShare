@@ -3,31 +3,31 @@ from collections import Counter
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework import serializers, validators
+from rest_framework import serializers
 
 from foodgram.models import (
     Favorite,
     Ingredient,
+    MIN_AMMOUNT,
     Recipe,
     RecipeIngridients,
     ShoppingCart,
     Subscription,
     Tag,
-    MIN_AMMOUNT
 )
 
 
 User = get_user_model()
 
-NONUNICUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на этого пользователя.'
-YOURSELF_SUBSCRIBE_MESSAGE = 'Нельзя быть подписанным на себя.'
 
-READD_RECIPE_MESSAGE = 'Рецепт уже добавлен.'
-ADD_INGREDIENTS_MESSAGE = 'Добавьте ингредиенты.'
-NONUNIQUE_INGREDIENTS_MESSAGE = 'Найдены повторяющиеся продукты: {duplicates}.'
-ADD_TAGS_MESSAGE = 'Добавьте один или несколько тегов.'
-NONUNIQUE_TAGS_MESSAGE = 'Найдены повторяющиеся теги: {duplicates}.'
 ADD_IMAGE_MESSAGE = 'Добавьте фото рецепта.'
+ADD_INGREDIENTS_MESSAGE = 'Добавьте ингредиенты.'
+ADD_TAGS_MESSAGE = 'Добавьте один или несколько тегов.'
+NONUNICUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на этого пользователя.'
+NONUNIQUE_INGREDIENTS_MESSAGE = 'Найдены повторяющиеся продукты: {duplicates}.'
+NONUNIQUE_TAGS_MESSAGE = 'Найдены повторяющиеся теги: {duplicates}.'
+READD_RECIPE_MESSAGE = 'Рецепт уже добавлен.'
+YOURSELF_SUBSCRIBE_MESSAGE = 'Нельзя быть подписанным на себя.'
 
 
 class UserSerializer(BaseUserSerializer):
@@ -133,7 +133,6 @@ class ReadRecipeSerialiser(serializers.ModelSerializer):
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
-    # image = Base64ImageField()  # лишнее поле
 
     class Meta:
         model = Recipe

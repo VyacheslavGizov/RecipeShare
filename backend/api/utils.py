@@ -8,6 +8,7 @@ def render_shopping_cart(recipes, ingredients):
     INGREDIENT_FORMAT = '  {}. {} ({}): {}'
     RECIPES_TITLE = '\nДля приготовления блюд:'
     RECIPE_FORMAT = '  - {}'
+
     counter = 0
     ingredients_to_report = []
     for ingredient in ingredients:
