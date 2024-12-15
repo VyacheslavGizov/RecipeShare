@@ -8,7 +8,7 @@ from rest_framework import serializers
 from foodgram.models import (
     Favorite,
     Ingredient,
-    MIN_AMMOUNT,
+    MIN_AMOUNT,
     Recipe,
     RecipeIngridients,
     ShoppingCart,
@@ -172,7 +172,7 @@ class AddIngredientInRecipeSerialiser(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all(),
     )
-    amount = serializers.IntegerField(min_value=MIN_AMMOUNT)
+    amount = serializers.IntegerField(min_value=MIN_AMOUNT)
 
     class Meta:
         model = RecipeIngridients

@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -68,7 +70,7 @@ class UserViewSet(BaseUserViewSet):
             serializer.save()
             return response.Response(serializer.data)
         instance.avatar.delete()
-        # instance.avatar = None
+        instance.avatar = None
         instance.save()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -139,11 +141,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
     pagination_class = PageNumberPaginationWithLimit
+    serializer_class = WriteRecipeSerialiser
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return ReadRecipeSerialiser
-        return WriteRecipeSerialiser
+        return super().get_serializer_class()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -199,7 +202,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
             'ingredient__name', 'ingredient__measurement_unit',
         ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
         return FileResponse(
-            render_shopping_cart(recipes, ingredients),
+            BytesIO(bytes(
+                render_shopping_cart(recipes, ingredients),
+                'utf-8'
+            )),
             as_attachment=True,
             filename='shopping-list.txt'
         )
