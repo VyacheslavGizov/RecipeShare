@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 from .filters import (
     CookingTimeFilter,
     RecipesExistsFilter,
-    SubcribersExistsFilter, 
+    SubcribersExistsFilter,
     SubcriptionsExistsFilter,
 )
 from .models import (
