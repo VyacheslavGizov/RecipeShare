@@ -18,7 +18,7 @@
 Добавить новые теги и ингредиенты может только администратор через админку: foodgram-project.hopto.org/admin
 
 ## Ссылки:
-- [Проект «Фудграм»](foodgram-project.hopto.org)
+- [Проект «Фудграм»](https://foodgram-project.hopto.org/)
 - [Документация к API «Фудграм»](https://foodgram-project.hopto.org/api/docs/)
 
 ## Стек:
