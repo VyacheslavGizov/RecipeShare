@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 
-DESCRIPTION_LENGTH_LIMIT = 18
+DESCRIPTION_LENGTH_LIMIT = 20
 INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1

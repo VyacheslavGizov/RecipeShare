@@ -124,6 +124,10 @@ MIDDLEWARE = [
 CORS_URLS_REGEX = r'^/api/.*$' 
 CORS_ALLOWED_ORIGINS = ['http://localhost:3000',] 
 ```
+- Запустить отладочный веб-сервер:
+```
+python manage.py runserver
+```
 
 ## Авторы:
 - [ЯП](https://github.com/yandex-praktikum);

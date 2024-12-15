@@ -165,7 +165,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @decorators.action(
         methods=('post', 'delete',),
-        permission_classes=(permissions.IsAuthenticated,),  # добавил возможно не нужно в приложении
+        permission_classes=(permissions.IsAuthenticated,),
         detail=True,
         url_name='shopping_cart'
     )
@@ -177,7 +177,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @decorators.action(
         methods=('post', 'delete',),
-        permission_classes=(permissions.IsAuthenticated,),  # добавил возможно не нужно в приложении
+        permission_classes=(permissions.IsAuthenticated,),
         detail=True,
         url_name='favorite'
     )
@@ -189,7 +189,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @decorators.action(
         detail=False,
-        permission_classes=(permissions.IsAuthenticated,),  # добавил возможно не нужно в приложении
+        permission_classes=(permissions.IsAuthenticated,),
         url_name='download_shopping_cart'
     )
     def download_shopping_cart(self, request):
