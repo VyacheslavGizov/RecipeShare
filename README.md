@@ -17,6 +17,10 @@
 
 Добавить новые теги и ингредиенты может только администратор через админку: foodgram-project.hopto.org/admin
 
+## Ссылки:
+- [Проект «Фудграм»](foodgram-project.hopto.org)
+- [Документация к API «Фудграм»](https://foodgram-project.hopto.org/api/docs/)
+
 ## Стек:
 - Django REST
 - Docker
@@ -28,7 +32,7 @@
 - Python 3.9
 
 ## Как запустить проект:
-Для того, чтобы развернуть проект на ubuntu необходимо:
+### Для того, чтобы развернуть проект на ubuntu, необходимо:
 - Установить на сервер Docker и Docker Compose:
 ```
 sudo apt update
@@ -85,6 +89,41 @@ sudo docker compose -f docker-compose.production.yml exec backend python manage.
 sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/  # Перемещение статики.
 ```
 - Или с использованием workflow main.yml выполнить push в ветку main.
+
+### Для того, чтобы развернуть проект локально, необходимо:
+- Установить Node.js версии v21.7.3 c [официального сайта](https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch), установить зависимости в директории фронтенда и запустить:
+```
+cd frontend/
+npm i 
+npm run start 
+```
+- В другом терминале в виртуальное окружение для бекенда установить django-cors-header:
+```
+pip install django-cors-headers 
+```
+- Подключить его в settings.py как приложение:
+```
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+    'corsheaders',
+    ...
+]
+```
+- В списке MIDDLEWARE зарегистрировать CorsMiddleware выше CommonMiddleware:
+```
+MIDDLEWARE = [
+    ...
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    ...
+]
+```
+- Добавить в settings.py 
+```
+CORS_URLS_REGEX = r'^/api/.*$' 
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000',] 
+```
 
 ## Авторы:
 - [ЯП](https://github.com/yandex-praktikum);
