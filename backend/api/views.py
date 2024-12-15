@@ -7,10 +7,22 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet as BaseUserViewSet
-from rest_framework import decorators, permissions, response, status, viewsets, serializers
+from rest_framework import (decorators, permissions, response, serializers,
+                            status, viewsets,)
 from rest_framework.reverse import reverse
 
+from .filters import IngredientFilter, RecipesFilter
 from .pagination import PageNumberPaginationWithLimit
+from .permissions import IsAuthorOrReadOnly
+from .serializers import (
+    AvatarSerializer,
+    IngredientSerialiser,
+    ReadRecipeSerialiser,
+    ShortRecipeSerializer,
+    TagSerializer,
+    UserInSubscriptionsSerializer,
+    WriteRecipeSerialiser,
+)
 from .utils import render_shopping_cart
 from foodgram.models import (
     Subscription,
@@ -21,18 +33,6 @@ from foodgram.models import (
     Favorite,
     ShoppingCart
 )
-from .filters import IngredientFilter, RecipesFilter
-from .serializers import (
-    AvatarSerializer,
-    IngredientSerialiser,
-    ReadRecipeSerialiser,
-    TagSerializer,
-    UserInSubscriptionsSerializer,
-    WriteRecipeSerialiser,
-    ShortRecipeSerializer
-)
-from .pagination import PageNumberPaginationWithLimit
-from .permissions import IsAuthorOrReadOnly
 
 
 User = get_user_model()
@@ -54,10 +54,6 @@ class UserViewSet(BaseUserViewSet):
             return UserInSubscriptionsSerializer
         return super().get_serializer_class()
 
-    def partial_update(self, request, *args, **kwargs):
-        kwargs['partial'] = False
-        return super().update(request, *args, **kwargs)
-
     @decorators.action(
         methods=['put', 'delete'],
         detail=False,
@@ -72,7 +68,7 @@ class UserViewSet(BaseUserViewSet):
             serializer.save()
             return response.Response(serializer.data)
         instance.avatar.delete()
-        instance.avatar = None
+        # instance.avatar = None
         instance.save()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -83,7 +79,7 @@ class UserViewSet(BaseUserViewSet):
     )
     def subscribe(self, request, id=None):
         user = request.user
-        author = get_object_or_404(User, id=id)
+        author = get_object_or_404(User, pk=id)
         if request.method == 'POST':
             try:
                 Subscription.objects.create(user=user, author=author)
@@ -110,7 +106,7 @@ class UserViewSet(BaseUserViewSet):
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """Вьюсет для модели Тега обеспечивающий только чтение данных."""
+    """Вьюсет для модели Тега, обеспечивающий только чтение данных."""
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
@@ -130,7 +126,13 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
-    """Вьюсет для модели Рецептов обеспечивающий операции CRUD."""
+    """
+    Вьюсет для модели Рецептов, обеспечивает:
+    - операции CRUD для рецептов;
+    - получение ссылки на рецепт;
+    - добавление и удаление рецепта в Избранное, Список покупок;
+    - получение списка покупок в формате .txt.
+    """
 
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
@@ -148,7 +150,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @decorators.action(
         detail=True,
-        permission_classes=(permissions.AllowAny,),  # добавил возможно не нужно в приложении
+        permission_classes=(permissions.AllowAny,),
         url_path='get-link',
         url_name='get_link',
     )
@@ -196,7 +198,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
         ).values_list(
             'ingredient__name', 'ingredient__measurement_unit',
         ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
-        print(render_shopping_cart(recipes, ingredients))
         return FileResponse(
             render_shopping_cart(recipes, ingredients),
             as_attachment=True,
@@ -215,8 +216,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         except (IntegrityError, ValidationError) as error:
             raise serializers.ValidationError(
                 VALIDATION_ERROR_MESSAGE.format(error=error))
-        return response.Response(ShortRecipeSerializer(recipe).data,
-                                 status=status.HTTP_201_CREATED)
+        return response.Response(
+            ShortRecipeSerializer(recipe).data,
+            status=status.HTTP_201_CREATED
+        )
 
     def delete_from_user_chosen(self, user_chosen_recipes, pk=None):
         get_object_or_404(user_chosen_recipes, recipe=pk).delete()

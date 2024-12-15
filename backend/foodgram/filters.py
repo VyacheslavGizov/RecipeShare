@@ -8,11 +8,12 @@ class ExistsBaseFilter(admin.SimpleListFilter):
     связанной вторичной модели. В parameter_name необходимо указать
     related_name вторичной модели.
     """
-    # проверить оформление докстринга
 
     def lookups(self, request, model_admin):
-        return [('exists', 'да'),
-                ('no', 'нет')]
+        return [
+            ('exists', 'да'),
+            ('no', 'нет'),
+        ]
 
     def queryset(self, request, users):
         users = users.annotate(parameter_quantity=Count(self.parameter_name))
@@ -58,8 +59,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
             for time_limit, recipes_number in recipes_per_time_limits
         ] + [('long', LONGER_FORMAT.format(
             self.time_limits[-1],
-            recipes.count() - recipes_per_time_limits[-1][1]
-        ))]
+            recipes.count() - recipes_per_time_limits[-1][1]))]
 
     def queryset(self, request, recipes):
         if self.value() == 'long':

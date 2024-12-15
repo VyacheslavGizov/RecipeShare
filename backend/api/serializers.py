@@ -21,7 +21,7 @@ User = get_user_model()
 
 
 ADD_IMAGE_MESSAGE = 'Добавьте фото рецепта.'
-ADD_INGREDIENTS_MESSAGE = 'Добавьте ингредиенты.'
+ADD_INGREDIENTS_MESSAGE = 'Добавьте продукты.'
 ADD_TAGS_MESSAGE = 'Добавьте один или несколько тегов.'
 NONUNICUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на этого пользователя.'
 NONUNIQUE_INGREDIENTS_MESSAGE = 'Найдены повторяющиеся продукты: {duplicates}.'
@@ -46,8 +46,10 @@ class UserSerializer(BaseUserSerializer):
         user = self.context['request'].user
         return (
             user.is_authenticated
-            and Subscription.objects.filter(user=user,
-                                            author=instance).exists()
+            and Subscription.objects.filter(
+                user=user,
+                author=instance
+            ).exists()
         )
 
 
@@ -102,7 +104,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class IngredientSerialiser(serializers.ModelSerializer):
-    """Сериализатор для списка Ингредиентов."""
+    """Сериализатор для списка Продуктов."""
 
     class Meta:
         model = Ingredient
@@ -110,7 +112,7 @@ class IngredientSerialiser(serializers.ModelSerializer):
 
 
 class IngredientForRecipeSerialiser(serializers.ModelSerializer):
-    """Сериализатор для отображения Ингредиента в Рецепте."""
+    """Сериализатор для отображения Продукта в Рецепте."""
 
     id = serializers.IntegerField(source='ingredient.id')
     name = serializers.CharField(source='ingredient.name')
@@ -129,7 +131,8 @@ class ReadRecipeSerialiser(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = UserSerializer()
     ingredients = IngredientForRecipeSerialiser(
-        source='recipe_ingridients', many=True
+        source='recipe_ingridients',
+        many=True
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -164,7 +167,7 @@ class ReadRecipeSerialiser(serializers.ModelSerializer):
 
 
 class AddIngredientInRecipeSerialiser(serializers.ModelSerializer):
-    """Сериализатор для добавления Ингредиента в Рецепт."""
+    """Сериализатор для добавления Продукта в Рецепт."""
 
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all(),
@@ -233,38 +236,21 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
             raise serializers.ValidationError(ADD_IMAGE_MESSAGE)
         return image
 
-    # def create(self, validated_data):
-    #     tags = validated_data.pop('tags')
-    #     ingredients = validated_data.pop('ingredients')
-    #     recipe = super().create(validated_data)
-    #     return self.add_ingredients_and_tags(recipe, tags, ingredients)
-
-    # def update(self, instance, validated_data):
-    #     tags = validated_data.pop('tags', instance.tags)
-    #     ingredients = validated_data.pop('ingredients', instance.ingredients)
-    #     instance.ingredients.clear()
-    #     return self.add_ingredients_and_tags(
-    #         super().update(instance, validated_data),
-    #         tags,
-    #         ingredients
-    #     )
     def create(self, validated_data):
-        tags, ingredients = self.extract_tags_and_ingredients(validated_data)
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
         recipe = super().create(validated_data)
         return self.add_ingredients_and_tags(recipe, tags, ingredients)
 
-    def update(self, instance, validated_data):  # проверить, работает ли в приложении обновление
-        tags, ingredients = self.extract_tags_and_ingredients(validated_data)
+    def update(self, instance, validated_data):
+        tags = validated_data.pop('tags', instance.tags)
+        ingredients = validated_data.pop('ingredients', instance.ingredients)
         instance.ingredients.clear()
         return self.add_ingredients_and_tags(
-            super().update(instance, validated_data),
-            tags,
-            ingredients
+            recipe=super().update(instance, validated_data),
+            tags=tags,
+            ingredients=ingredients
         )
-
-    @staticmethod
-    def extract_tags_and_ingredients(validated_data):
-        return (validated_data.pop('tags'), validated_data.pop('ingredients'))
 
     @staticmethod
     def add_ingredients_and_tags(recipe, tags, ingredients):

@@ -3,10 +3,21 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
 
-from .filters import (CookingTimeFilter, RecipesExistsFilter,
-                      SubcribersExistsFilter, SubcriptionsExistsFilter)
-from .models import (Favorite, Ingredient, Recipe, RecipeIngridients,
-                     ShoppingCart, Subscription, Tag)
+from .filters import (
+    CookingTimeFilter,
+    RecipesExistsFilter,
+    SubcribersExistsFilter, 
+    SubcriptionsExistsFilter,
+)
+from .models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngridients,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 
 
 AVATAR_TITLE = 'Аватар'
@@ -90,7 +101,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(RecipesCountBaseAdmin):
-    """Настройка административной зоны для модели Ингредиентов."""
+    """Настройка административной зоны для модели Продуктов."""
 
     list_display = ('id', 'name', 'measurement_unit', 'recipes_count')
     search_fields = ('name', 'measurement_unit')
@@ -172,7 +183,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(RecipeIngridients)
 class RecipeIngridientsAdmin(admin.ModelAdmin):
-    """Настройка административной зоны для модели Ингредиентов для Рецепта."""
+    """Настройка административной зоны для модели Продуктов для Рецепта."""
 
     list_display = ('id', 'recipe', 'ingredient', 'amount',)
     search_fields = ('recipe__name',)

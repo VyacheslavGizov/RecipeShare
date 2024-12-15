@@ -9,10 +9,7 @@ def load_from_json(model, path):
     try:
         with open(path, 'r', encoding='utf-8') as json_file:
             model.objects.bulk_create(
-                (
-                    model(**line)
-                    for line in json.load(json_file)
-                ),
+                (model(**line) for line in json.load(json_file)),
                 ignore_conflicts=True
             )
     except FileNotFoundError:

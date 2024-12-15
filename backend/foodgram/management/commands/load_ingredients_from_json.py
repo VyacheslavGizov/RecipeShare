@@ -7,6 +7,7 @@ from config.settings import BASE_DIR
 from foodgram.models import Ingredient
 
 FILENAME = 'ingredients.json'
+
 path = os.path.join(BASE_DIR, 'data/' + FILENAME)
 
 

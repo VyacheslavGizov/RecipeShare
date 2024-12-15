@@ -5,10 +5,9 @@ from django.db import models
 
 
 DESCRIPTION_LENGTH_LIMIT = 20
+INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
 MIN_AMMOUNT = 1
 MIN_COOKING_TIME = 1
-
-INGREDIENT_HELP_TEXT = 'Укажите необходимые ингредиенты.'
 NONUNIQUE_USERNAME_MESSAGE = 'Пользователь с таким именем уже существует.'
 TAG_HELP_TEXT = 'Выберите один или несколько тегов.'
 USERNAME_VALIDATION_MESSAGE = ('Это поле может содержать только буквы, цифры '
@@ -123,7 +122,7 @@ class Ingredient(models.Model):
     """Модель Продукта."""
 
     name = models.CharField('Название', max_length=128, db_index=True,)
-    measurement_unit = models.CharField('Единица измерения', max_length=64,)
+    measurement_unit = models.CharField('Мера', max_length=64,)
 
     class Meta:
         verbose_name = 'Продукт'
@@ -200,7 +199,7 @@ class RecipeIngridients(models.Model):
         verbose_name='Продукт'
     )
     amount = models.PositiveSmallIntegerField(
-        'Мера',
+        'Количество',
         validators=[MinValueValidator(MIN_AMMOUNT)],
     )
 
