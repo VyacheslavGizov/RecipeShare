@@ -5,12 +5,12 @@ from django.core.management.base import BaseCommand
 
 from ..utils import NOT_FOUND_MESSAGE
 from config.settings import BASE_DIR
-from foodgram.models import Ingredient
+from recipes.models import Ingredient
 
 
 FILENAME = 'ingredients.csv'
 
-path = os.path.join(BASE_DIR, 'data/' + FILENAME)
+path = os.path.join(BASE_DIR, f'data/{FILENAME}')
 
 
 class Command(BaseCommand):

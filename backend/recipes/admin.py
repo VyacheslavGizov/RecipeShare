@@ -160,7 +160,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description=FAVORITE_RESIPE_TITLE)
     def count_favorites(self, object):
-        return object.favorite.count()
+        return object.favorites.count()
 
     @mark_safe
     @admin.display(description=RECIPE_IMAGE_TITLE)

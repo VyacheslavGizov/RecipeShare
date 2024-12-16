@@ -26,7 +26,7 @@ from .serializers import (
     WriteRecipeSerialiser,
 )
 from .utils import render_shopping_cart
-from foodgram.models import (
+from recipes.models import (
     Subscription,
     Tag,
     Ingredient,

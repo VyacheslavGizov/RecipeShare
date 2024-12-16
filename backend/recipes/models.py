@@ -8,10 +8,7 @@ DESCRIPTION_LENGTH_LIMIT = 20
 INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
-NONUNIQUE_USERNAME_MESSAGE = 'Пользователь с таким именем уже существует.'
-TAG_HELP_TEXT = 'Выберите один или несколько тегов.'
-USERNAME_VALIDATION_MESSAGE = ('Это поле может содержать только буквы, цифры '
-                               'и символы @/./+/-/_')
+TAG_HELP_TEXT = 'Выберите один или несколько тегов.' 
 
 
 class User(AbstractUser):
@@ -19,7 +16,7 @@ class User(AbstractUser):
 
     first_name = models.CharField('Имя', max_length=150)
     last_name = models.CharField('Фамилия', max_length=150)
-    email = models.EmailField('E-mail', max_length=254, unique=True)
+    email = models.EmailField('Электронная почта', max_length=254, unique=True)
     avatar = models.ImageField(
         'Аватар',
         upload_to='users_avatars/',
@@ -27,18 +24,10 @@ class User(AbstractUser):
         null=True
     )
     username = models.CharField(
-        'Имя пользователя',
+        'Псевдоним',
         max_length=150,
         unique=True,
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+\Z',
-                message=USERNAME_VALIDATION_MESSAGE
-            )
-        ],
-        error_messages={
-            'unique': NONUNIQUE_USERNAME_MESSAGE,
-        },
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')]
     )
 
     USERNAME_FIELD = 'email'
@@ -62,14 +51,14 @@ class User(AbstractUser):
         )
 
 
-user_model = get_user_model()
+User = get_user_model()
 
 
 class Subscription(models.Model):
     """Модель Подписок."""
 
     user = models.ForeignKey(
-        user_model,
+        User,
         on_delete=models.CASCADE,
         related_name='subscribers',
         verbose_name='Пользватель'
@@ -78,7 +67,7 @@ class Subscription(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='authors',
-        verbose_name='Подписан на автора'
+        verbose_name='Автор'
     )
 
     class Meta:
@@ -143,7 +132,7 @@ class Recipe(models.Model):
     """Модель Рецепта."""
 
     author = models.ForeignKey(
-        user_model,
+        User,
         on_delete=models.CASCADE,
         help_text='Автор',
         verbose_name='Автор',
@@ -166,11 +155,7 @@ class Recipe(models.Model):
         'Время приготовления, мин.',
         validators=[MinValueValidator(MIN_COOKING_TIME)],
     )
-    pub_date = models.DateTimeField(
-        'Дата публикации',
-        auto_now_add=True,
-        db_index=True,
-    )
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -191,7 +176,7 @@ class RecipeIngridients(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        verbose_name='Продукты для рецепта',
+        verbose_name='Рецепт',
     )
     ingredient = models.ForeignKey(
         Ingredient,
@@ -220,7 +205,7 @@ class RecipeIngridients(models.Model):
 
 class UserAndRecipeModel(models.Model):
     user = models.ForeignKey(
-        user_model,
+        User,
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
     )
@@ -232,13 +217,19 @@ class UserAndRecipeModel(models.Model):
 
     class Meta:
         abstract = True
-        default_related_name = '%(class)s'
+        default_related_name = '%(class)ss'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe', ],
                 name='unique_users_%(class)s_records'
             )
         ]
+
+    def __str__(self):
+        return (
+            f'{self.user}: '
+            f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
+        )
 
 
 class Favorite(UserAndRecipeModel):
@@ -248,13 +239,6 @@ class Favorite(UserAndRecipeModel):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
 
-    def __str__(self):
-        return (
-            f'{self.user}: '
-            f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
-            '- в Избранном'
-        )
-
 
 class ShoppingCart(UserAndRecipeModel):
     """Модель Списка покупок."""
@@ -262,10 +246,3 @@ class ShoppingCart(UserAndRecipeModel):
     class Meta(UserAndRecipeModel.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
-
-    def __str__(self):
-        return (
-            f'{self.user}: '
-            f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
-            '- в Списке покупок'
-        )
