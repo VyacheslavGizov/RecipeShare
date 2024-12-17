@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
+from django.urls import reverse
 
 from .filters import (
     CookingTimeFilter,
@@ -20,17 +21,6 @@ from .models import (
 )
 
 
-AVATAR_TITLE = 'Аватар'
-EMPTY_AVATAR = 'Не задан'
-FAVORITE_RESIPE_TITLE = 'раз в Избранном'
-FULL_NAME_TITLE = 'Имя_фамилия'
-INGREDIENTS_TITLE = 'Продукты'
-RECIPE_IMAGE_TITLE = 'Фото блюда'
-RECIPES_COUNT_TITLE = 'Рецептов'
-SUBSCRIBERS_TITLE = 'Подписчиков'
-SUBSCRIPTIONS_TITLE = 'Подписок'
-TAGS_TITLE = 'Теги'
-
 User = get_user_model()
 
 admin.site.unregister(Group)
@@ -38,7 +28,7 @@ admin.site.unregister(Group)
 
 class RecipesCountBaseAdmin(admin.ModelAdmin):
 
-    @admin.display(description=RECIPES_COUNT_TITLE)
+    @admin.display(description='Рецептов')
     def recipes_count(self, object):
         return object.recipes.count()
 
@@ -60,7 +50,6 @@ class UserAdmin(RecipesCountBaseAdmin):
     )
     search_fields = ('email', 'username')
     list_filter = (
-        'is_staff',
         RecipesExistsFilter,
         SubcribersExistsFilter,
         SubcriptionsExistsFilter,
@@ -68,28 +57,42 @@ class UserAdmin(RecipesCountBaseAdmin):
     list_display_links = ('email', 'username')
     list_editable = ('is_staff',)
 
-    @admin.display(description=FULL_NAME_TITLE)
-    def full_name(self, object):
-        return object.full_name
+    @mark_safe
+    @admin.display(description='Рецептов')
+    def recipes_count(self, user):
+        model = Recipe
+        count = super().recipes_count(user)
+        return (
+            u'<a href="{}?author__id__exact={}">{}</a>'.format(
+                reverse('admin:{}_{}_changelist'.format(
+                    model._meta.app_label,
+                    model._meta.model_name)
+                ),
+                user.pk,
+                count
+            ) if count else count
+        )
 
-    @admin.display(description=SUBSCRIPTIONS_TITLE)
-    def subscriprions_count(self, object):
-        return object.subscribers.count()
+    @admin.display(description='Имя_фамилия')
+    def full_name(self, user):
+        return user.full_name
 
-    @admin.display(description=SUBSCRIBERS_TITLE)
-    def subscribers_count(self, object):
-        return object.authors.count()
+    @admin.display(description='Подписок')
+    def subscriprions_count(self, user):
+        return user.subscribers.count()
+
+    @admin.display(description='Подписчиков')
+    def subscribers_count(self, user):
+        return user.authors.count()
 
     @mark_safe
-    @admin.display(description=AVATAR_TITLE)
-    def avatar_preview(self, object):
-        avatar = object.avatar
-        if avatar:
-            return f'<img src="{avatar.url}" style="max-height: 100px;">'
-        return EMPTY_AVATAR
-
-    def has_recipes(self):
-        return bool(self.recipes_count())
+    @admin.display(description='Аватар')
+    def avatar_preview(self, user):
+        avatar = user.avatar
+        return (
+            f'<img src="{avatar.url}" style="max-height: 100px;">'
+            if user.avatar else ''
+        )
 
 
 @admin.register(Subscription)
@@ -143,12 +146,10 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('tags', 'author', CookingTimeFilter)
     filter_horizontal = ('tags',)
     inlines = (RecipeIngridientsInline,)
-    readonly_fields = ('count_favorites',)
 
     fieldsets = (
         (None, {
             'fields': (
-                'count_favorites',
                 ('name', 'cooking_time',),
                 'author',
                 'image',
@@ -158,24 +159,26 @@ class RecipeAdmin(admin.ModelAdmin):
         }),
     )
 
-    @admin.display(description=FAVORITE_RESIPE_TITLE)
-    def count_favorites(self, object):
-        return object.favorites.count()
+    @admin.display(description='раз в Избранном')
+    def count_favorites(self, recipe):
+        return recipe.favorites.count()
 
     @mark_safe
-    @admin.display(description=RECIPE_IMAGE_TITLE)
-    def image_preview(self, object):
-        return f'<img src="{object.image.url}" style="max-height: 100px;">'
+    @admin.display(description='Фото блюда')
+    def image_preview(self, recipe):
+        return f'<img src="{recipe.image.url}" style="max-height: 100px;">'
 
     @mark_safe
-    @admin.display(description=TAGS_TITLE)
-    def get_tags(self, object):
-        return self.display_description_objects(object.tags.all())
+    @admin.display(description='Теги')
+    def get_tags(self, recipe):
+        return self.display_description_objects(recipe.tags.all())
 
     @mark_safe
-    @admin.display(description=INGREDIENTS_TITLE)
-    def get_ingredients(self, object):
-        return self.display_description_objects(object.ingredients.all())
+    @admin.display(description='Продукты')
+    def get_ingredients(self, recipe):
+        return self.display_description_objects(
+            recipe.recipe_ingridients.all()
+        )
 
     def display_description_objects(self, objects):
         return ',<br/>'.join([str(object) for object in objects])

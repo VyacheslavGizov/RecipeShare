@@ -125,7 +125,8 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.name[:DESCRIPTION_LENGTH_LIMIT]}'
+        return (f'{self.name[:DESCRIPTION_LENGTH_LIMIT]} '
+                f'({self.measurement_unit})')
 
 
 class Recipe(models.Model):
@@ -200,7 +201,7 @@ class RecipeIngridients(models.Model):
         ]
 
     def __str__(self):
-        return (f'{self.recipe}: {self.ingredient} - {self.amount}')
+        return f'{self.ingredient}: {self.amount}'
 
 
 class UserAndRecipeModel(models.Model):
