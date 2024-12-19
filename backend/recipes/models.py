@@ -46,8 +46,7 @@ class User(AbstractUser):
         return (
             f'{self.first_name[:DESCRIPTION_LENGTH_LIMIT]} '
             f'{self.last_name[:DESCRIPTION_LENGTH_LIMIT]} | '
-            f'{self.username[:DESCRIPTION_LENGTH_LIMIT]} | '
-            f'{self.email}'
+            f'{self.username[:DESCRIPTION_LENGTH_LIMIT]}'
         )
 
 

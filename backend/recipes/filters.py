@@ -75,7 +75,8 @@ class CookingTimeFilter(admin.SimpleListFilter):
             short_time = round(0.5 * (normal_time + min_time))
             if short_time == normal_time:
                 times = [min_time, normal_time, max_time]
-            times = [short_time, normal_time, max_time]
+            else:
+                times = [short_time, normal_time, max_time]
         lower_limits = [0]
         lower_limits[1:] = times[:-1]
         ranges = zip(lower_limits, times)

@@ -1,28 +1,38 @@
 from datetime import datetime
+from string import capwords
+
+from django.shortcuts import get_object_or_404
+from rest_framework.serializers import ValidationError
+
+
+# для render_shopping_cart()
+REPORT_TITLE = 'СПИСОК ПОКУПОК'
+CREATED_DATE = 'составлен {:%d.%m.%Y}'
+INGREDIENTS_TITLE = '\nПродукты:'
+INGREDIENT_FORMAT = '  {}. {} ({}): {}'
+RECIPES_TITLE = '\nДля приготовления блюд:'
+RECIPE_FORMAT = '  - {}'
+
+# для create_or_validation_error()
+NOT_UNUNIQUE_MESSAGE = 'Попытка создать дублирующуюся запись в модели {name}.'
 
 
 def render_shopping_cart(recipes, ingredients):
-    REPORT_TITLE = 'СПИСОК ПОКУПОК'
-    CREATED_DATE = 'составлен {:%d.%m.%Y}'.format(datetime.now())
-    INGREDIENTS_TITLE = '\nПродукты:'
-    INGREDIENT_FORMAT = '  {}. {} ({}): {}'
-    RECIPES_TITLE = '\nДля приготовления блюд:'
-    RECIPE_FORMAT = '  - {}'
-
-    counter = 0
-    ingredients_to_report = []
-    for ingredient in ingredients:
-        counter += 1
-        ingredients_to_report.append(INGREDIENT_FORMAT.format(
-            counter,
-            ingredient[0].capitalize(),
-            *ingredient[1:])
-        )
+    ingredients_to_report = [
+        capwords(INGREDIENT_FORMAT.format(number, *ingredient))
+        for number, ingredient in enumerate(ingredients, 1)
+    ]
     return '\n'.join([
         REPORT_TITLE,
-        CREATED_DATE,
+        CREATED_DATE.format(datetime.now()),
         INGREDIENTS_TITLE,
         *ingredients_to_report,
         RECIPES_TITLE,
-        *[RECIPE_FORMAT.format(recipe) for recipe in recipes]
+        *[RECIPE_FORMAT.format(recipe.name) for recipe in recipes]
     ])
+
+
+def create_or_validation_error(model, **field_values):
+    _, is_created = model.objects.get_or_create(**field_values)
+    if not is_created:
+        raise ValidationError(NOT_UNUNIQUE_MESSAGE.format(name=model))

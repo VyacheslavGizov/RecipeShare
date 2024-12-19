@@ -1,13 +1,8 @@
-from io import BytesIO
-
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.db.models import Sum
-from django.db.utils import IntegrityError
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
-from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet as BaseUserViewSet
 from rest_framework import (decorators, permissions, response, serializers,
                             status, viewsets,)
@@ -25,7 +20,7 @@ from .serializers import (
     UserInSubscriptionsSerializer,
     WriteRecipeSerialiser,
 )
-from .utils import render_shopping_cart
+from .utils import render_shopping_cart, create_or_validation_error
 from recipes.models import (
     Subscription,
     Tag,
@@ -41,6 +36,8 @@ User = get_user_model()
 
 VALIDATION_ERROR_MESSAGE = 'Ошибка валидации - {error}'
 RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.'
+SELF_SUBSCRIPTION_MESSAGE = 'Нельзя быть подписанным на себя.'
+NOT_UNUNIQUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на данного автора.'
 
 
 class UserViewSet(BaseUserViewSet):
@@ -48,7 +45,7 @@ class UserViewSet(BaseUserViewSet):
 
     def get_permissions(self):
         if self.action == 'me':
-            return (CurrentUserOrAdmin(),)
+            return (permissions.IsAuthenticated(),)
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -82,13 +79,10 @@ class UserViewSet(BaseUserViewSet):
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, pk=id)
+        if user == author:
+            raise serializers.ValidationError(SELF_SUBSCRIPTION_MESSAGE)
         if request.method == 'POST':
-            try:
-                Subscription.objects.create(user=user, author=author)
-            except (IntegrityError, ValidationError) as error:
-                raise serializers.ValidationError(
-                    VALIDATION_ERROR_MESSAGE.format(error=error)
-                )
+            create_or_validation_error(Subscription, user=user, author=author)
             return response.Response(
                 self.get_serializer(author).data,
                 status=status.HTTP_201_CREATED
@@ -98,13 +92,14 @@ class UserViewSet(BaseUserViewSet):
 
     @decorators.action(detail=False, url_name='subscribtions')
     def subscriptions(self, request):
-        queryset = User.objects.filter(authors__user=request.user)
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return response.Response(serializer.data)
+        return self.get_paginated_response(
+            self.get_serializer(
+                self.paginate_queryset(
+                    User.objects.filter(authors__user=request.user)
+                ),
+                many=True
+            ).data
+        )
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -141,12 +136,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
     pagination_class = PageNumberPaginationWithLimit
-    serializer_class = WriteRecipeSerialiser
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return ReadRecipeSerialiser
-        return super().get_serializer_class()
+        return WriteRecipeSerialiser
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -158,7 +152,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='get_link',
     )
     def get_link(self, request, pk=None):
-        self.recipe_exist_or_400(pk)
+        if not self.queryset.filter(pk=pk).exists():
+            raise serializers.ValidationError(
+                RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
         return response.Response({'short-link': request.build_absolute_uri(
             reverse('api:recipes-detail', args=[pk])
         )})
@@ -173,7 +169,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.method == 'POST':
             return self.add_to_user_chosen(ShoppingCart, user)
-        return self.delete_from_user_chosen(user.shoppingcart, pk)
+        return self.delete_from_user_chosen(user.shoppingcarts, pk)
 
     @decorators.action(
         methods=('post', 'delete',),
@@ -185,7 +181,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.method == 'POST':
             return self.add_to_user_chosen(Favorite, user)
-        return self.delete_from_user_chosen(user.favorite, pk)
+        return self.delete_from_user_chosen(user.favorites, pk)
 
     @decorators.action(
         detail=False,
@@ -194,34 +190,24 @@ class RecipesViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        recipes = Recipe.objects.filter(shoppingcart__user=user).values_list(
-            'name', flat=True).order_by('name')
+        recipes = Recipe.objects.filter(
+            shoppingcarts__user=user
+        ).order_by('name')
         ingredients = RecipeIngridients.objects.filter(
-            recipe__shoppingcart__user=user
+            recipe__shoppingcarts__user=user
         ).values_list(
             'ingredient__name', 'ingredient__measurement_unit',
         ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
+        render_shopping_cart(recipes, ingredients)
         return FileResponse(
-            BytesIO(bytes(
-                render_shopping_cart(recipes, ingredients),
-                'utf-8'
-            )),
+            render_shopping_cart(recipes, ingredients),
             as_attachment=True,
             filename='shopping-list.txt'
         )
 
-    def recipe_exist_or_400(self, pk):
-        if not self.queryset.filter(pk=pk).exists():
-            raise serializers.ValidationError(
-                RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
-
     def add_to_user_chosen(self, model, user):
         recipe = self.get_object()
-        try:
-            model.objects.create(user=user, recipe=recipe)
-        except (IntegrityError, ValidationError) as error:
-            raise serializers.ValidationError(
-                VALIDATION_ERROR_MESSAGE.format(error=error))
+        create_or_validation_error(model, user=user, recipe=recipe)
         return response.Response(
             ShortRecipeSerializer(recipe).data,
             status=status.HTTP_201_CREATED

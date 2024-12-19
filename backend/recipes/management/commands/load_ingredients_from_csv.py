@@ -3,7 +3,7 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from ..utils import NOT_FOUND_MESSAGE
+from ..utils import SOME_ERROR
 from config.settings import BASE_DIR
 from recipes.models import Ingredient
 
@@ -29,5 +29,5 @@ class Command(BaseCommand):
                     ),
                     ignore_conflicts=True
                 )
-        except FileNotFoundError:
-            print(NOT_FOUND_MESSAGE.format(path=path))
+        except Exception as error:
+            print(SOME_ERROR.format(model=Ingredient, path=path, error=error))

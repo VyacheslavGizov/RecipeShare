@@ -1,7 +1,6 @@
 import json
 
 
-NOT_FOUND_MESSAGE = 'Ошибка! Файл {path} не найден.'
 SOME_ERROR = ('При загрузке данных в модель {model} из {path} '
               'возникла ошибка: {error}')
 
