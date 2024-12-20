@@ -4,11 +4,12 @@ from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 
-DESCRIPTION_LENGTH_LIMIT = 20
+TAG_HELP_TEXT = 'Выберите один или несколько тегов.'
 INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
+DESCRIPTION_LENGTH_LIMIT = 20
+MAX_KEY_LENGTH = 15
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
-TAG_HELP_TEXT = 'Выберите один или несколько тегов.' 
 
 
 class User(AbstractUser):
@@ -246,3 +247,25 @@ class ShoppingCart(UserAndRecipeModel):
     class Meta(UserAndRecipeModel.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
+
+
+class LinkKey(models.Model):
+    """Модель пар: Ссылка-Ключ."""
+
+    link = models.CharField(
+        'Исходная ссылка',
+        max_length=32,
+        unique=True
+    )
+    key = models.CharField(
+        'Ключ',
+        max_length=MAX_KEY_LENGTH,
+        unique=True
+    )
+
+    class Meta:
+        verbose_name = 'Пара: ссылка-ключ'
+        verbose_name_plural = 'Пары: ссылка-ключ'
+
+    def __str__(self):
+        return f'{self.link} -> {self.key}'

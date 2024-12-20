@@ -2,7 +2,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import View
 from djoser.views import UserViewSet as BaseUserViewSet
 from rest_framework import (decorators, permissions, response, serializers,
                             status, viewsets,)
@@ -20,18 +21,18 @@ from .serializers import (
     UserInSubscriptionsSerializer,
     WriteRecipeSerialiser,
 )
-from .utils import render_shopping_cart, create_or_validation_error
+from .utils import (create_or_validation_error, get_random_string,
+                    render_shopping_cart)
 from recipes.models import (
-    Subscription,
-    Tag,
+    Favorite,
     Ingredient,
+    LinkKey,
     Recipe,
     RecipeIngridients,
-    Favorite,
-    ShoppingCart
+    ShoppingCart,
+    Subscription,
+    Tag,
 )
-from shortener.models import LinkKey
-from shortener.utils import get_random_string
 
 
 User = get_user_model()
@@ -167,7 +168,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                else get_random_string(URLPATH_LENGTH))
         LinkKey.objects.get_or_create(link=source_link, key=key)
         return response.Response({'short-link': request.build_absolute_uri(
-            reverse('shortener:urlpath_change', args=[key])
+            reverse('short-link', args=[key])
         )})
 
     @decorators.action(
@@ -227,3 +228,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def delete_from_user_chosen(self, user_chosen_recipes, pk=None):
         get_object_or_404(user_chosen_recipes, recipe=pk).delete()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShortlinkView(View):
+    """
+    Обработка короткой ссылки:
+    перенаправление по соответствующей полной ссылке.
+    """
+
+    def get(self, request, *args, **kwargs):
+        print(kwargs['url_key'])
+        return redirect(get_object_or_404(LinkKey, key=kwargs['url_key']).link)

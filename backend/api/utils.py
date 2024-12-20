@@ -1,5 +1,7 @@
 from datetime import datetime
 from string import capwords
+import random
+import string
 
 from django.shortcuts import get_object_or_404
 from rest_framework.serializers import ValidationError
@@ -36,3 +38,8 @@ def create_or_validation_error(model, **field_values):
     _, is_created = model.objects.get_or_create(**field_values)
     if not is_created:
         raise ValidationError(NOT_UNUNIQUE_MESSAGE.format(name=model))
+
+
+def get_random_string(string_length):
+    alphabet = ''.join([string.ascii_letters, string.digits])
+    return ''.join(random.choice(alphabet) for _ in range(string_length))

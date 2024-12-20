@@ -3,11 +3,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from api import views
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('s/', include('shortener.urls'))
+    path('s/<str:url_key>/', views.ShortlinkView.as_view(), name='short-link')
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL,

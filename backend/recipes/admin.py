@@ -13,6 +13,7 @@ from .filters import (
 from .models import (
     Favorite,
     Ingredient,
+    LinkKey,
     Recipe,
     RecipeIngridients,
     ShoppingCart,
@@ -200,3 +201,8 @@ class ShoppingCartAndFavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'user__first_name',)
     list_select_related = ('user', 'recipe',)
+
+
+@admin.register(LinkKey)
+class LinkKeyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'link', 'key')

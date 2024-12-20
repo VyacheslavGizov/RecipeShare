@@ -26,7 +26,6 @@ INSTALLED_APPS = [
     'djoser',
     'django_filters',
     'recipes.apps.RecipesConfig',
-    'shortener.apps.ShortenerConfig',
     'api.apps.ApiConfig',
 ]
 
