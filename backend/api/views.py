@@ -30,6 +30,8 @@ from recipes.models import (
     Favorite,
     ShoppingCart
 )
+from shortener.models import LinkKey
+from shortener.utils import get_random_string
 
 
 User = get_user_model()
@@ -38,6 +40,7 @@ VALIDATION_ERROR_MESSAGE = 'Ошибка валидации - {error}'
 RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.'
 SELF_SUBSCRIPTION_MESSAGE = 'Нельзя быть подписанным на себя.'
 NOT_UNUNIQUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на данного автора.'
+URLPATH_LENGTH = 6
 
 
 class UserViewSet(BaseUserViewSet):
@@ -155,8 +158,16 @@ class RecipesViewSet(viewsets.ModelViewSet):
         if not self.queryset.filter(pk=pk).exists():
             raise serializers.ValidationError(
                 RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
+        source_link = (
+            request.META.get('HTTP_REFERER')
+            or reverse('api:recipes-detail', args=[pk])
+        )
+        existed_link = LinkKey.objects.filter(link=source_link).first()
+        key = (existed_link.key if existed_link
+               else get_random_string(URLPATH_LENGTH))
+        LinkKey.objects.get_or_create(link=source_link, key=key)
         return response.Response({'short-link': request.build_absolute_uri(
-            reverse('api:recipes-detail', args=[pk])
+            reverse('shortener:urlpath_change', args=[key])
         )})
 
     @decorators.action(
