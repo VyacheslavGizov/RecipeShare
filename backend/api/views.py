@@ -26,7 +26,7 @@ from .utils import (create_or_validation_error, get_random_string,
 from recipes.models import (
     Favorite,
     Ingredient,
-    LinkKey,
+    PathKey,
     Recipe,
     RecipeIngridients,
     ShoppingCart,
@@ -159,14 +159,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
         if not self.queryset.filter(pk=pk).exists():
             raise serializers.ValidationError(
                 RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
-        source_link = (
+        source_path = (
             request.META.get('HTTP_REFERER')
             or reverse('api:recipes-detail', args=[pk])
         )
-        existed_link = LinkKey.objects.filter(link=source_link).first()
-        key = (existed_link.key if existed_link
+        existed_path_key = PathKey.objects.filter(path=source_path).first()
+        key = (existed_path_key.key if existed_path_key
                else get_random_string(URLPATH_LENGTH))
-        LinkKey.objects.get_or_create(link=source_link, key=key)
+        PathKey.objects.get_or_create(path=source_path, key=key)
         return response.Response({'short-link': request.build_absolute_uri(
             reverse('short-link', args=[key])
         )})
@@ -237,5 +237,7 @@ class ShortlinkView(View):
     """
 
     def get(self, request, *args, **kwargs):
-        print(kwargs['url_key'])
-        return redirect(get_object_or_404(LinkKey, key=kwargs['url_key']).link)
+        print(kwargs['key'])
+        return redirect(
+            get_object_or_404(PathKey, key=kwargs['key']).path
+        )

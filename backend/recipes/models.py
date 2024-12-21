@@ -249,11 +249,11 @@ class ShoppingCart(UserAndRecipeModel):
         verbose_name_plural = 'Списки покупок'
 
 
-class LinkKey(models.Model):
-    """Модель пар: Ссылка-Ключ."""
+class PathKey(models.Model):
+    """Модель пар: Путь-Ключ."""
 
-    link = models.CharField(
-        'Исходная ссылка',
+    path = models.CharField(
+        'Путь',
         max_length=32,
         unique=True
     )
@@ -264,8 +264,8 @@ class LinkKey(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Пара: ссылка-ключ'
-        verbose_name_plural = 'Пары: ссылка-ключ'
+        verbose_name = 'Пара: путь-ключ'
+        verbose_name_plural = 'Пары: путь-ключ'
 
     def __str__(self):
-        return f'{self.link} -> {self.key}'
+        return f'{self.path} -> {self.key}'
