@@ -131,4 +131,4 @@ python manage.py runserver
 
 ## Авторы:
 - [ЯП](https://github.com/yandex-praktikum);
-- [Vyacheslav Gizov(Backend)](https://github.com/VyacheslavGizov).
+- [Vyacheslav Gizov](https://github.com/VyacheslavGizov).
