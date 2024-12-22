@@ -33,22 +33,15 @@
 
 ## Как запустить проект:
 ### Для того, чтобы развернуть проект с использованием Docker, необходимо:
-Установить Docker:
-- для [Windows и MacOS](https://www.docker.com/products/docker-desktop/)
-- для [Linux](https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script)
-Если вы работаете на Linux, то также необходимо отдельно установить [Docker Compose](https://docs.docker.com/compose/install/)
-
-
-### Для того, чтобы развернуть проект на ubuntu, необходимо:
-- Установить на сервер Docker и Docker Compose:
+1. Установить Docker:
+- для [Windows и MacOS](https://www.docker.com/products/docker-desktop/);
+- для [Linux](https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script);
+- Если вы работаете на Linux, то также необходимо отдельно установить [Docker Compose](https://docs.docker.com/compose/install/).
+2. Клонировать репозиторий:
 ```
-sudo apt update
-sudo apt install curl
-curl -fSL https://get.docker.com -o get-docker.sh
-sudo sh ./get-docker.sh
-sudo apt-get install docker-compose-plugin;
+git clone https://...
 ```
-- В директории проекта создать файл .env с переменными окружения:
+3. В директории проекта foodgram создать файл .env с переменными окружения:
 ```
 # Содержимое .env
 POSTGRES_DB=<имя_базы_данных>
@@ -64,78 +57,67 @@ SECRET_KEY=<секретный_ключ_Django>
 DEBUG=False  # Для отладки True.
 ALLOWED_HOSTS=<IP_и/или_доменное имя>
 ```
-- Установить и настроить NGINX:
+4. Для запуска контейнеров, находясь в корневой директории проекта, выполнить:
 ```
-sudo apt install nginx -y
-sudo systemctl start nginx
-sudo ufw allow 'Nginx Full'  # Настройка firewall
-sudo ufw allow OpenSSH
-sudo ufw enable  # Включить firewall
-# В конфигурационном файле NGINX
-sudo nano /etc/nginx/sites-enabled/default
-# Указать
-#server {
-#    listen 80;
-#    server_name <доменное_имя>
-#    
-#    location / {
-#        proxy_set_header HOST $host;
-#        proxy_pass http://127.0.0.1:9090;  # WSGI-сервер слушает порт 9090
-#
-#    }
-#}
-sudo nginx -t  # Проверка корректности настроек. 
-sudo systemctl start nginx  # Запуск nginx.
+docker compose up  # Запуск контейнеров.
+docker compose exec backend python manage.py migrate  # Миграции.
+docker compose exec backend python manage.py load_ingredients_from_json  # Загрузить продукты.
+docker compose exec backend python manage.py load_tags_from_json  # Загрузить теги.
+docker compose exec backend python manage.py collectstatic  # Сбор статики.
+docker compose exec backend cp -r /app/collected_static/. /backend_static/static/  # Перемещение статики.
 ```
-- Для запуска контенеров: разместить в директории проекта файл docker-compose.production.yml и выполнить:
-```
-sudo docker compose -f docker-compose.production.yml up -d  # Запуск контейнеров.
-sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate  # Миграции.
-python manage.py loaddata initial_data.json  # Загрузить ингредиенты, теги и данные администратора в БД.
-sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic  # Сбор статики.
-sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/  # Перемещение статики.
-```
-- Или с использованием workflow main.yml выполнить push в ветку main.
 
-### Для того, чтобы развернуть проект локально, необходимо:
-- Установить Node.js версии v21.7.3 c [официального сайта](https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch), установить зависимости в директории фронтенда и запустить:
+### Для того, чтобы развернуть проект локально без Docker, необходимо:
+1. Установить Node.js версии v21.7.3 c [официального сайта](https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch).
+2. Выполнить шаги 2 и 3 из инструкции с применением Docker.
+3. Перейти в директорию foodgram/backend/, создать и активировать виртуальное окружение, установить зависимости:
 ```
-cd frontend/
-npm i 
-npm run start 
+cd backend/
+python -m venv venv
+source venv/Scripts/activate
+pip install -r requirements.txt
 ```
-- В другом терминале в виртуальное окружение для бекенда установить django-cors-header:
+5. Дополнительно установить django-cors-header:
 ```
 pip install django-cors-headers 
 ```
-- Подключить его в settings.py как приложение:
+6. Открыть backend/config/settings.py:
+- подключить django-cors-header как приложение:
+
 ```
 INSTALLED_APPS = [
     ...
     'rest_framework',
-    'corsheaders',
+    'corsheaders',  # Добавить
     ...
 ]
 ```
-- В списке MIDDLEWARE зарегистрировать CorsMiddleware выше CommonMiddleware:
+- в списке MIDDLEWARE зарегистрировать CorsMiddleware выше CommonMiddleware:
 ```
 MIDDLEWARE = [
     ...
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Добавить
     'django.middleware.common.CommonMiddleware',
     ...
 ]
 ```
-- Добавить в settings.py 
+- добавить константы:
 ```
 CORS_URLS_REGEX = r'^/api/.*$' 
 CORS_ALLOWED_ORIGINS = ['http://localhost:3000',] 
 ```
-- Запустить отладочный веб-сервер:
+8. Вернуться в директорию backend/ и выполнить:
 ```
-python manage.py runserver
+python manage.py migrate  # Миграции.
+python manage.py load_ingredients_from_json  # Загрузить продукты.
+backend python manage.py load_tags_from_json  # Загрузить теги.
+python manage.py runserver  # Запустить отладочный веб-сервер.
 ```
-
+7. В новом окне терминала перейти в директорию foodgram/frontend/, установить зависимости и запустить приложение на React:
+```
+npm i 
+npm run start 
+```
 ## Авторы:
 - [ЯП](https://github.com/yandex-praktikum);
 - [Vyacheslav Gizov](https://github.com/VyacheslavGizov).

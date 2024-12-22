@@ -17,9 +17,6 @@ LENGTH_IN_BYTES = 2
 
 def get_link():
     return token_urlsafe(LENGTH_IN_BYTES)
-# def get_link():
-#     alphabet = ''.join([string.ascii_letters, string.digits])
-#     return ''.join(random.choice(alphabet) for _ in range(MAX_LINK_LENGTH))
 
 
 class User(AbstractUser):
