@@ -1,5 +1,4 @@
-import random
-import string
+from secrets import token_urlsafe
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
@@ -13,11 +12,14 @@ DESCRIPTION_LENGTH_LIMIT = 20
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
 MAX_LINK_LENGTH = 5
+LENGTH_IN_BYTES = 2
 
 
 def get_link():
-    alphabet = ''.join([string.ascii_letters, string.digits])
-    return ''.join(random.choice(alphabet) for _ in range(MAX_LINK_LENGTH))
+    return token_urlsafe(LENGTH_IN_BYTES)
+# def get_link():
+#     alphabet = ''.join([string.ascii_letters, string.digits])
+#     return ''.join(random.choice(alphabet) for _ in range(MAX_LINK_LENGTH))
 
 
 class User(AbstractUser):
@@ -270,7 +272,7 @@ class Link(models.Model):
 
     source_link = models.CharField(
         'Исходная ссылка',
-        max_length=32,
+        max_length=124,
         unique=True
     )
 
