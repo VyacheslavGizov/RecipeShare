@@ -9,7 +9,8 @@ from api import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('s/<str:key>/', views.ShortlinkView.as_view(), name='short-link')
+    path('s/<str:short_link>/', views.ShortlinkView.as_view(),
+         name='short-link')
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL,

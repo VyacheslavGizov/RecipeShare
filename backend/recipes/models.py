@@ -1,3 +1,5 @@
+from secrets import token_urlsafe
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
@@ -7,9 +9,12 @@ from django.db import models
 TAG_HELP_TEXT = 'Выберите один или несколько тегов.'
 INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
 DESCRIPTION_LENGTH_LIMIT = 20
-MAX_KEY_LENGTH = 15
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
+LENGTH_IN_BYTES = 4
+
+def get_key():
+    return token_urlsafe(LENGTH_IN_BYTES)
 
 
 class User(AbstractUser):
@@ -249,23 +254,26 @@ class ShoppingCart(UserAndRecipeModel):
         verbose_name_plural = 'Списки покупок'
 
 
-class PathKey(models.Model):
-    """Модель пар: Путь-Ключ."""
+class Link(models.Model):
+    """Модель Ссылок."""
 
-    path = models.CharField(
-        'Путь',
-        max_length=32,
-        unique=True
+    short_link = models.CharField(
+        'Короткая ссылка',
+        primary_key=True,
+        max_length=20,
+        unique=True,
+        default=get_key
     )
-    key = models.CharField(
-        'Ключ',
-        max_length=MAX_KEY_LENGTH,
+
+    source_link = models.CharField(
+        'Исходная ссылка',
+        max_length=32,
         unique=True
     )
 
     class Meta:
-        verbose_name = 'Пара: путь-ключ'
-        verbose_name_plural = 'Пары: путь-ключ'
+        verbose_name = 'Ссылка'
+        verbose_name_plural = 'Ссылки'
 
     def __str__(self):
-        return f'{self.path} -> {self.key}'
+        return f'{self.source_link} -> {self.short_link}'
