@@ -1,4 +1,5 @@
-from secrets import token_urlsafe
+import random
+import string
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
@@ -11,11 +12,12 @@ INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
 DESCRIPTION_LENGTH_LIMIT = 20
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
-LENGTH_IN_BYTES = 4
+MAX_LINK_LENGTH = 5
 
 
-def get_key():
-    return token_urlsafe(LENGTH_IN_BYTES)
+def get_link():
+    alphabet = ''.join([string.ascii_letters, string.digits])
+    return ''.join(random.choice(alphabet) for _ in range(MAX_LINK_LENGTH))
 
 
 class User(AbstractUser):
@@ -261,9 +263,9 @@ class Link(models.Model):
     short_link = models.CharField(
         'Короткая ссылка',
         primary_key=True,
-        max_length=20,
+        max_length=MAX_LINK_LENGTH,
         unique=True,
-        default=get_key
+        default=get_link
     )
 
     source_link = models.CharField(

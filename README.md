@@ -34,7 +34,8 @@
 ## Как запустить проект:
 ### Для того, чтобы развернуть проект с использованием Docker, необходимо:
 Установить Docker:
-- для [Windows и MacOS]
+- для [Windows и MacOS](https://www.docker.com/products/docker-desktop/)
+- для [Linux](https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script)
 
 ### Для того, чтобы развернуть проект на ubuntu, необходимо:
 - Установить на сервер Docker и Docker Compose:
