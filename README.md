@@ -36,6 +36,8 @@
 Установить Docker:
 - для [Windows и MacOS](https://www.docker.com/products/docker-desktop/)
 - для [Linux](https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script)
+Если вы работаете на Linux, то также необходимо отдельно установить [Docker Compose](https://docs.docker.com/compose/install/)
+
 
 ### Для того, чтобы развернуть проект на ubuntu, необходимо:
 - Установить на сервер Docker и Docker Compose:
