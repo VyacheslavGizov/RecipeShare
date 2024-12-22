@@ -1,6 +1,5 @@
 from secrets import token_urlsafe
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -56,9 +55,6 @@ class User(AbstractUser):
             f'{self.last_name[:DESCRIPTION_LENGTH_LIMIT]} | '
             f'{self.username[:DESCRIPTION_LENGTH_LIMIT]}'
         )
-
-
-User = get_user_model()
 
 
 class Subscription(models.Model):

@@ -83,5 +83,5 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     @staticmethod
     def get_recipes_between(recipes, range_):
-        return recipes.filter(Q(cooking_time__gt=range_[0]) &
-                              Q(cooking_time__lte=range_[1]))
+        return recipes.filter(Q(cooking_time__gt=range_[0])
+                              & Q(cooking_time__lte=range_[1]))
