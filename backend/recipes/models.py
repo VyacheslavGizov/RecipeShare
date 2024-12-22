@@ -13,6 +13,7 @@ MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
 LENGTH_IN_BYTES = 4
 
+
 def get_key():
     return token_urlsafe(LENGTH_IN_BYTES)
 
@@ -255,7 +256,7 @@ class ShoppingCart(UserAndRecipeModel):
 
 
 class Link(models.Model):
-    """Модель Ссылок."""
+    """Модель Ссылки."""
 
     short_link = models.CharField(
         'Короткая ссылка',

@@ -79,8 +79,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
                 times = [short_time, normal_time, max_time]
         lower_limits = [0]
         lower_limits[1:] = times[:-1]
-        ranges = zip(lower_limits, times)
-        return {str(range_[-1]): range_ for range_ in ranges}
+        return {str(range_[-1]): range_ for range_ in zip(lower_limits, times)}
 
     @staticmethod
     def get_recipes_between(recipes, range_):
