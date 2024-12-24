@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db.models import Count
 
 
-LABELS = [('exists', 'да'), ('no', 'нет'),]
+LABELS = [('exists', 'да'), ('no', 'нет'), ]
 LINE_FORMAT = 'до {} мин. ({})'
 
 
