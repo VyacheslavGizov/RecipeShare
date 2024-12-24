@@ -1,5 +1,9 @@
 from django.contrib import admin
-from django.db.models import Count, Q
+from django.db.models import Count
+
+
+LABELS = [('exists', 'да'), ('no', 'нет'),]
+LINE_FORMAT = 'до {} мин. ({})'
 
 
 class ExistsBaseFilter(admin.SimpleListFilter):
@@ -10,10 +14,7 @@ class ExistsBaseFilter(admin.SimpleListFilter):
     """
 
     def lookups(self, request, model_admin):
-        return [
-            ('exists', 'да'),
-            ('no', 'нет'),
-        ]
+        return LABELS
 
     def queryset(self, request, users):
         users_with_count = users.annotate(
@@ -44,44 +45,38 @@ class CookingTimeFilter(admin.SimpleListFilter):
     title = 'Время приготовления'
     parameter_name = 'cooking_time'
 
-    default_time_limits = [5, 15, 35]
-    time_limits = None
-
     def lookups(self, request, model_admin):
-        LINE_FORMAT = 'до {} мин. ({})'
         recipes = model_admin.get_queryset(request)
-        self.time_limits = self.get_time_limits(recipes)
-        return [(
-            limit, LINE_FORMAT.format(
-                limit, self.get_recipes_between(recipes, range_).count())
-        ) for limit, range_ in self.time_limits.items()]
+        time_limits = self.get_time_limits(recipes)
+        return (
+            time_limits
+            and [(range_, LINE_FORMAT.format(
+                limit, self.get_recipes_between(recipes, range_).count()
+            )) for limit, range_ in time_limits.items()]
+        )
 
     def queryset(self, request, recipes):
-        if self.value() in self.time_limits:
-            return self.get_recipes_between(recipes,
-                                            self.time_limits[self.value()])
+        if self.value():
+            return self.get_recipes_between(recipes, eval(self.value()))
         return recipes
 
     def get_time_limits(self, recipes):
         cooking_times = list(set(
-            [item[0] for item in recipes.values_list('cooking_time')]
+            item[0] for item in recipes.values_list('cooking_time')
         ))
         if len(cooking_times) < 3:
-            times = self.default_time_limits
+            return None
+        min_time = min(cooking_times)
+        max_time = max(cooking_times)
+        normal_time = round((max_time + min_time) // 2)
+        short_time = round((normal_time + min_time) // 2)
+        if short_time == normal_time:
+            times = [min_time, normal_time, max_time]
         else:
-            min_time = min(cooking_times)
-            max_time = max(cooking_times)
-            normal_time = round(0.5 * (max_time + min_time))
-            short_time = round(0.5 * (normal_time + min_time))
-            if short_time == normal_time:
-                times = [min_time, normal_time, max_time]
-            else:
-                times = [short_time, normal_time, max_time]
-        lower_limits = [0]
-        lower_limits[1:] = times[:-1]
-        return {str(range_[-1]): range_ for range_ in zip(lower_limits, times)}
+            times = [short_time, normal_time, max_time]
+        return {str(range_[-1]): range_
+                for range_ in zip([0] + times[:-1], times)}
 
     @staticmethod
     def get_recipes_between(recipes, range_):
-        return recipes.filter(Q(cooking_time__gt=range_[0])
-                              & Q(cooking_time__lte=range_[1]))
+        return recipes.filter(cooking_time__range=range_)

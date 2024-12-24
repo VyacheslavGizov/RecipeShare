@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -13,7 +14,6 @@ from .filters import (
 from .models import (
     Favorite,
     Ingredient,
-    Link,
     Recipe,
     RecipeIngridients,
     ShoppingCart,
@@ -26,7 +26,7 @@ User = get_user_model()
 admin.site.unregister(Group)
 
 
-class RecipesCountBaseAdmin(admin.ModelAdmin):
+class RecipesCountMixin:
 
     @admin.display(description='Рецептов')
     def recipes_count(self, object):
@@ -34,7 +34,7 @@ class RecipesCountBaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(User)
-class UserAdmin(RecipesCountBaseAdmin):
+class UserAdmin(RecipesCountMixin, BaseUserAdmin):
     """Настройка административной зоны для модели Пользователя."""
 
     list_display = (
@@ -103,7 +103,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Ingredient)
-class IngredientAdmin(RecipesCountBaseAdmin):
+class IngredientAdmin(RecipesCountMixin, admin.ModelAdmin):
     """Настройка административной зоны для модели Продуктов."""
 
     list_display = ('id', 'name', 'measurement_unit', 'recipes_count')
@@ -112,7 +112,7 @@ class IngredientAdmin(RecipesCountBaseAdmin):
 
 
 @admin.register(Tag)
-class TagAdmin(RecipesCountBaseAdmin):
+class TagAdmin(RecipesCountMixin, admin.ModelAdmin):
     """Настройка административной зоны для модели Тегов."""
 
     list_display = ('id', 'name', 'slug', 'recipes_count')
@@ -159,12 +159,12 @@ class RecipeAdmin(admin.ModelAdmin):
         }),
     )
 
-    @admin.display(description='раз в Избранном')
+    @admin.display(description='в Избранном')
     def count_favorites(self, recipe):
         return recipe.favorites.count()
 
     @mark_safe
-    @admin.display(description='Фото блюда')
+    @admin.display(description='Фото')
     def image_preview(self, recipe):
         return f'<img src="{recipe.image.url}" style="max-height: 100px;">'
 
@@ -181,7 +181,7 @@ class RecipeAdmin(admin.ModelAdmin):
         )
 
     def display_description_objects(self, objects):
-        return ',<br/>'.join([str(object) for object in objects])
+        return '<br/>'.join(str(object) for object in objects)
 
 
 @admin.register(RecipeIngridients)
@@ -200,8 +200,3 @@ class ShoppingCartAndFavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'user__first_name',)
     list_select_related = ('user', 'recipe',)
-
-
-@admin.register(Link)
-class PathAdmin(admin.ModelAdmin):
-    list_display = ('short_link', 'source_link')

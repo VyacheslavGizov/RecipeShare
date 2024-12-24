@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, namedtuple
 
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer as BaseUserSerializer
@@ -93,6 +93,7 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = fields
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -123,6 +124,7 @@ class IngredientForRecipeSerialiser(serializers.ModelSerializer):
     class Meta:
         model = RecipeIngridients
         fields = ('id', 'name', 'measurement_unit', 'amount')
+        read_only_fields = fields
 
 
 class ReadRecipeSerialiser(serializers.ModelSerializer):
@@ -203,27 +205,25 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         )
 
     def get_duplicates_info(self, items):
-        return ','.join(
-            str(item) for item, count in Counter(items).items()
-            if count > 1
-        )
+        return [item for item, count in Counter(items).items() if count > 1]
 
-    def unique_or_validation_error(self, items):
+    def validate_uniqueness(self, items):
         if not items:
             raise serializers.ValidationError(NOT_ITEMS_MESSAGE)
         if len(items) != len(set(items)):
             raise serializers.ValidationError(NONUNIQUE_ITEMS_MESSAGE.format(
                 duplicates=self.get_duplicates_info(items)))
+        return items
 
     def validate_ingredients(self, ingredients):
-        self.unique_or_validation_error(
-            items=[ingredient['id'] for ingredient in ingredients]
-        )
-        return ingredients
+        recipe_ingredient = namedtuple('ingredient', 'id amount')
+        return self.validate_uniqueness([
+            recipe_ingredient(ingredient['id'], ingredient['amount'])
+            for ingredient in ingredients
+        ])
 
     def validate_tags(self, tags):
-        self.unique_or_validation_error(items=tags)
-        return tags
+        return self.validate_uniqueness(items=tags)
 
     def validate_image(self, image):
         if not image:
@@ -249,8 +249,8 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         recipe.tags.set(tags)
         RecipeIngridients.objects.bulk_create(
             RecipeIngridients(
-                ingredient=ingredient['id'],
-                amount=ingredient['amount'],
+                ingredient=ingredient.id,
+                amount=ingredient.amount,
                 recipe=recipe
             ) for ingredient in ingredients
         )

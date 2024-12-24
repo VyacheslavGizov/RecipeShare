@@ -2,8 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
-from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import View
+from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as BaseUserViewSet
 from rest_framework import (decorators, permissions, response, serializers,
                             status, viewsets,)
@@ -21,11 +20,10 @@ from .serializers import (
     UserInSubscriptionsSerializer,
     WriteRecipeSerialiser,
 )
-from .utils import create_or_validation_error, render_shopping_cart
+from .utils import render_shopping_cart
 from recipes.models import (
     Favorite,
     Ingredient,
-    Link,
     Recipe,
     RecipeIngridients,
     ShoppingCart,
@@ -36,11 +34,9 @@ from recipes.models import (
 
 User = get_user_model()
 
-VALIDATION_ERROR_MESSAGE = 'Ошибка валидации - {error}'
-RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.'
 SELF_SUBSCRIPTION_MESSAGE = 'Нельзя быть подписанным на себя.'
 NOT_UNUNIQUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на данного автора.'
-URLPATH_LENGTH = 6
+NOT_UNUNIQUE_MESSAGE = 'Попытка создать дублирующуюся запись в модели {model}.'
 
 
 class UserViewSet(BaseUserViewSet):
@@ -82,10 +78,14 @@ class UserViewSet(BaseUserViewSet):
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, pk=id)
-        if user == author:
-            raise serializers.ValidationError(SELF_SUBSCRIPTION_MESSAGE)
         if request.method == 'POST':
-            create_or_validation_error(Subscription, user=user, author=author)
+            if user == author:
+                raise serializers.ValidationError(SELF_SUBSCRIPTION_MESSAGE)
+            _, is_created = Subscription.objects.get_or_create(
+                user=user, author=author)
+            if not is_created:
+                raise serializers.ValidationError(
+                    NOT_UNUNIQUE_MESSAGE.format(model=Subscription))
             return response.Response(
                 self.get_serializer(author).data,
                 status=status.HTTP_201_CREATED
@@ -155,16 +155,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         url_name='get_link',
     )
     def get_link(self, request, pk=None):
-        if not self.queryset.filter(pk=pk).exists():
-            raise serializers.ValidationError(
-                RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
-        source_link = (
-            request.META.get('HTTP_REFERER')
-            or reverse('api:recipes-detail', args=[pk])
-        )
-        link, _ = Link.objects.get_or_create(source_link=source_link)
+        if not Recipe.objects.filter(pk=pk).exists():
+            raise serializers.ValidationError(pk)
         return response.Response({'short-link': request.build_absolute_uri(
-            reverse('short-link', args=[link.short_link])
+            reverse('short-link', args=[pk])
         )})
 
     @decorators.action(
@@ -206,7 +200,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
         ).values_list(
             'ingredient__name', 'ingredient__measurement_unit',
         ).annotate(total_amount=Sum('amount')).order_by('ingredient__name')
-        render_shopping_cart(recipes, ingredients)
         return FileResponse(
             render_shopping_cart(recipes, ingredients),
             as_attachment=True,
@@ -215,7 +208,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def add_to_user_chosen(self, model, user):
         recipe = self.get_object()
-        create_or_validation_error(model, user=user, recipe=recipe)
+        _, is_created = model.objects.get_or_create(user=user, recipe=recipe)
+        if not is_created:
+            raise serializers.ValidationError(
+                NOT_UNUNIQUE_MESSAGE.format(model=model))
         return response.Response(
             ShortRecipeSerializer(recipe).data,
             status=status.HTTP_201_CREATED
@@ -224,15 +220,3 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def delete_from_user_chosen(self, user_chosen_recipes, pk=None):
         get_object_or_404(user_chosen_recipes, recipe=pk).delete()
         return response.Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class ShortlinkView(View):
-    """
-    Обработка короткой ссылки:
-    перенаправление по соответствующей полной ссылке.
-    """
-
-    def get(self, request, *args, **kwargs):
-        return redirect(
-            get_object_or_404(Link, pk=kwargs['short_link']).source_link
-        )

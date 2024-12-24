@@ -1,5 +1,3 @@
-from secrets import token_urlsafe
-
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -10,12 +8,6 @@ INGREDIENT_HELP_TEXT = 'Укажите необходимые продукты.'
 DESCRIPTION_LENGTH_LIMIT = 20
 MIN_AMOUNT = 1
 MIN_COOKING_TIME = 1
-MAX_LINK_LENGTH = 5
-LENGTH_IN_BYTES = 2
-
-
-def get_link():
-    return token_urlsafe(LENGTH_IN_BYTES)
 
 
 class User(AbstractUser):
@@ -143,7 +135,7 @@ class Recipe(models.Model):
     )
     name = models.CharField('Название', max_length=256,)
     image = models.ImageField('Фото блюда', upload_to='recipes_images/',)
-    text = models.TextField('Описание', max_length=2200,)
+    text = models.TextField('Описание',)
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngridients',
@@ -230,10 +222,7 @@ class UserAndRecipeModel(models.Model):
         ]
 
     def __str__(self):
-        return (
-            f'{self.user}: '
-            f'({self.recipe.__str__()[:DESCRIPTION_LENGTH_LIMIT]})'
-        )
+        return f'{self.user}: {self.recipe}'
 
 
 class Favorite(UserAndRecipeModel):
@@ -250,28 +239,3 @@ class ShoppingCart(UserAndRecipeModel):
     class Meta(UserAndRecipeModel.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
-
-
-class Link(models.Model):
-    """Модель Ссылки."""
-
-    short_link = models.CharField(
-        'Короткая ссылка',
-        primary_key=True,
-        max_length=MAX_LINK_LENGTH,
-        unique=True,
-        default=get_link
-    )
-
-    source_link = models.CharField(
-        'Исходная ссылка',
-        max_length=124,
-        unique=True
-    )
-
-    class Meta:
-        verbose_name = 'Ссылка'
-        verbose_name_plural = 'Ссылки'
-
-    def __str__(self):
-        return f'{self.source_link} -> {self.short_link}'

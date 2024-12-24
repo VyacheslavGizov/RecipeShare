@@ -2,15 +2,17 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-
-from api import views
+from django.views.generic.base import RedirectView
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('s/<str:short_link>/', views.ShortlinkView.as_view(),
-         name='short-link')
+    path(
+        's/<str:pk>/',
+        RedirectView.as_view(pattern_name='api:recipes-detail'),
+        name='short-link'
+    ),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL,
