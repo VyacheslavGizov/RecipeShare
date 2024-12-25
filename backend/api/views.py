@@ -37,6 +37,7 @@ User = get_user_model()
 SELF_SUBSCRIPTION_MESSAGE = 'Нельзя быть подписанным на себя.'
 NOT_UNUNIQUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на данного автора.'
 NOT_UNUNIQUE_MESSAGE = 'Попытка создать дублирующуюся запись в модели {model}.'
+RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.' 
 
 
 class UserViewSet(BaseUserViewSet):
@@ -78,20 +79,20 @@ class UserViewSet(BaseUserViewSet):
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, pk=id)
-        if request.method == 'POST':
-            if user == author:
-                raise serializers.ValidationError(SELF_SUBSCRIPTION_MESSAGE)
-            _, is_created = Subscription.objects.get_or_create(
-                user=user, author=author)
-            if not is_created:
-                raise serializers.ValidationError(
-                    NOT_UNUNIQUE_MESSAGE.format(model=Subscription))
-            return response.Response(
-                self.get_serializer(author).data,
-                status=status.HTTP_201_CREATED
-            )
-        get_object_or_404(author.authors, user=user).delete()
-        return response.Response(status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'DELETE':
+            get_object_or_404(author.authors, user=user).delete()
+            return response.Response(status=status.HTTP_204_NO_CONTENT)
+        if user == author:
+            raise serializers.ValidationError(SELF_SUBSCRIPTION_MESSAGE)
+        _, is_created = Subscription.objects.get_or_create(
+            user=user, author=author)
+        if not is_created:
+            raise serializers.ValidationError(
+                NOT_UNUNIQUE_MESSAGE.format(model=Subscription))
+        return response.Response(
+            self.get_serializer(author).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @decorators.action(detail=False, url_name='subscribtions')
     def subscriptions(self, request):
@@ -156,9 +157,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
     )
     def get_link(self, request, pk=None):
         if not Recipe.objects.filter(pk=pk).exists():
-            raise serializers.ValidationError(pk)
+            raise serializers.ValidationError(
+                RECIPE_NOT_EXIST_MESSAGE.format(id=pk))
         return response.Response({'short-link': request.build_absolute_uri(
-            reverse('short-link', args=[pk])
+            reverse('recipes:short-link', args=[pk])
         )})
 
     @decorators.action(

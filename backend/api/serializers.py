@@ -1,4 +1,4 @@
-from collections import Counter, namedtuple
+from collections import Counter
 
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer as BaseUserSerializer
@@ -216,11 +216,9 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         return items
 
     def validate_ingredients(self, ingredients):
-        recipe_ingredient = namedtuple('ingredient', 'id amount')
-        return self.validate_uniqueness([
-            recipe_ingredient(ingredient['id'], ingredient['amount'])
-            for ingredient in ingredients
-        ])
+        return (self.validate_uniqueness(
+            [ingredient['id'] for ingredient in ingredients]
+        ) and ingredients)
 
     def validate_tags(self, tags):
         return self.validate_uniqueness(items=tags)
@@ -249,8 +247,8 @@ class WriteRecipeSerialiser(serializers.ModelSerializer):
         recipe.tags.set(tags)
         RecipeIngridients.objects.bulk_create(
             RecipeIngridients(
-                ingredient=ingredient.id,
-                amount=ingredient.amount,
+                ingredient=ingredient['id'],
+                amount=ingredient['amount'],
                 recipe=recipe
             ) for ingredient in ingredients
         )

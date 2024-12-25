@@ -117,6 +117,7 @@ class TagAdmin(RecipesCountMixin, admin.ModelAdmin):
 
     list_display = ('id', 'name', 'slug', 'recipes_count')
     list_display_links = ('name', 'slug',)
+    search_fields = ('name', 'slug')
 
 
 class RecipeIngridientsInline(admin.TabularInline):

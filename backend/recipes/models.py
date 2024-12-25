@@ -42,11 +42,7 @@ class User(AbstractUser):
         return f'{self.first_name} {self.last_name}'
 
     def __str__(self):
-        return (
-            f'{self.first_name[:DESCRIPTION_LENGTH_LIMIT]} '
-            f'{self.last_name[:DESCRIPTION_LENGTH_LIMIT]} | '
-            f'{self.username[:DESCRIPTION_LENGTH_LIMIT]}'
-        )
+        return f'{self.username[:DESCRIPTION_LENGTH_LIMIT]}'
 
 
 class Subscription(models.Model):
@@ -99,7 +95,7 @@ class Tag(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        return f'{self.name} | {self.slug}'
+        return f'{self.name}'
 
 
 class Ingredient(models.Model):
@@ -148,7 +144,7 @@ class Recipe(models.Model):
         help_text=TAG_HELP_TEXT
     )
     cooking_time = models.PositiveSmallIntegerField(
-        'Время приготовления, мин.',
+        'Время (мин)',
         validators=[MinValueValidator(MIN_COOKING_TIME)],
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)

@@ -3,7 +3,8 @@ from django.db.models import Count
 
 
 LABELS = [('exists', 'да'), ('no', 'нет'), ]
-LINE_FORMAT = 'до {} мин. ({})'
+LESS_FORMAT = 'до {} мин ({})'
+MORE_FORMAT = 'больше ({})'
 
 
 class ExistsBaseFilter(admin.SimpleListFilter):
@@ -47,35 +48,36 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         recipes = model_admin.get_queryset(request)
-        time_limits = self.get_time_limits(recipes)
-        return (
-            time_limits
-            and [(range_, LINE_FORMAT.format(
-                limit, self.get_recipes_between(recipes, range_).count()
-            )) for limit, range_ in time_limits.items()]
-        )
+        time_ranges = self.get_time_ranges(recipes=recipes, ranges_number=3)
+        return (time_ranges and [(range_, LESS_FORMAT.format(
+            range_[1], self.get_recipes_between(recipes, range_).count()))
+            if range_ != time_ranges[-1]
+            else (range_, MORE_FORMAT.format(
+                self.get_recipes_between(recipes, range_).count()))
+            for range_ in time_ranges])
 
     def queryset(self, request, recipes):
         if self.value():
             return self.get_recipes_between(recipes, eval(self.value()))
         return recipes
 
-    def get_time_limits(self, recipes):
-        cooking_times = list(set(
+    def get_time_ranges(self, recipes, ranges_number):
+        cooking_times = sorted(list(set(
             item[0] for item in recipes.values_list('cooking_time')
-        ))
-        if len(cooking_times) < 3:
+        )))
+        times_length = len(cooking_times)
+        if times_length < ranges_number or ranges_number == 1:
             return None
-        min_time = min(cooking_times)
-        max_time = max(cooking_times)
-        normal_time = round((max_time + min_time) // 2)
-        short_time = round((normal_time + min_time) // 2)
-        if short_time == normal_time:
-            times = [min_time, normal_time, max_time]
-        else:
-            times = [short_time, normal_time, max_time]
-        return {str(range_[-1]): range_
-                for range_ in zip([0] + times[:-1], times)}
+        index_step = times_length // ranges_number
+        return [self.get_first_and_last(
+            cooking_times[i * index_step:(i + 1) * index_step])
+            if i < ranges_number - 1
+            else self.get_first_and_last(cooking_times[i * index_step:])
+            for i in range(ranges_number)]
+
+    @staticmethod
+    def get_first_and_last(elements):
+        return elements[0], elements[-1]
 
     @staticmethod
     def get_recipes_between(recipes, range_):
