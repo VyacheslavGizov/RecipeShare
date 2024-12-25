@@ -37,7 +37,7 @@ User = get_user_model()
 SELF_SUBSCRIPTION_MESSAGE = 'Нельзя быть подписанным на себя.'
 NOT_UNUNIQUE_SUBSCRIPTION_MESSAGE = 'Вы уже подписаны на данного автора.'
 NOT_UNUNIQUE_MESSAGE = 'Попытка создать дублирующуюся запись в модели {model}.'
-RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.' 
+RECIPE_NOT_EXIST_MESSAGE = 'Рецепт с id={id} не найден.'
 
 
 class UserViewSet(BaseUserViewSet):
