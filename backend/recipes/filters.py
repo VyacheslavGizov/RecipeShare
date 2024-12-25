@@ -48,7 +48,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         recipes = model_admin.get_queryset(request)
-        time_ranges = self.get_time_ranges(recipes=recipes, ranges_number=3)
+        time_ranges = self.get_time_ranges(recipes=recipes, ranges_number=4)
         return (time_ranges and [(range_, LESS_FORMAT.format(
             range_[1], self.get_recipes_between(recipes, range_).count()))
             if range_ != time_ranges[-1]
