@@ -1,7 +1,7 @@
-[ ![Main workflow](https://github.com/VyacheslavGizov/RecipeShare/actions/workflows/main.yml/badge.svg "aspect=1")](https://github.com/VyacheslavGizov/RecipeShare/actions/workflows/main.yml)
+[ ![Main Foodgram workflow](https://github.com/VyacheslavGizov/foodgram/actions/workflows/main.yml/badge.svg "aspect=1")](https://github.com/VyacheslavGizov/foodgram/actions/workflows/main.yml)
 
 
-# RecipeSharing
+# RecipeShare
 
 **RecipeShare** - сайт, на котором пользователи могут публиковать свои рецепты, добавлять чужие рецепты в избранное и подписываться на публикации других авторов. Зарегистрированным пользователям также доступен сервис «Список покупок». Он позволит создавать список продуктов, которые нужно купить для приготовления выбранных блюд. 
 
@@ -159,3 +159,5 @@ npm run start
 
 - [Вячеслав Гизов](https://github.com/VyacheslavGizov)
 - [ЯП](https://github.com/yandex-praktikum)
+
+
